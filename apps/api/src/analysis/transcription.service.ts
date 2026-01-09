@@ -9,12 +9,16 @@ export class TranscriptionService {
   private openai: OpenAI;
 
   constructor(private config: ConfigService) {
-    this.openai = new OpenAI({
-      apiKey: this.config.get<string>('OPENAI_API_KEY'),
-    });
+    const apiKey = this.config.get<string>('OPENAI_API_KEY');
+    if (apiKey && apiKey !== 'sk-your-openai-api-key') {
+      this.openai = new OpenAI({ apiKey });
+    }
   }
 
   async transcribeAudio(audioPath: string): Promise<string> {
+    if (!this.openai) {
+      throw new Error('OpenAI API key not configured');
+    }
     const audioFile = fs.createReadStream(audioPath);
 
     const response = await this.openai.audio.transcriptions.create({

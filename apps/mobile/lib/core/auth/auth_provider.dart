@@ -143,6 +143,40 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _apiClient.clearAuthToken();
     state = const AuthState();
   }
+
+  Future<bool> demoLogin() async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final response = await _apiClient.post('/auth/demo');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final accessToken = response.data['accessToken'] as String;
+        final user = User.fromJson(response.data['user']);
+
+        await _storage.write(key: 'access_token', value: accessToken);
+        _apiClient.setAuthToken(accessToken);
+
+        state = AuthState(
+          isAuthenticated: true,
+          accessToken: accessToken,
+          user: user,
+        );
+        return true;
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Demo login failed. Please try again.',
+        );
+        return false;
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Demo login failed. Please try again.',
+      );
+      return false;
+    }
+  }
 }
 
 final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {

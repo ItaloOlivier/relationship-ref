@@ -34,6 +34,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
 
+  Future<void> _demoLogin() async {
+    await ref.read(authStateProvider.notifier).demoLogin();
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
@@ -144,6 +148,30 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             ),
                           )
                         : const Text('Send Magic Link'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(child: Divider(color: AppColors.textSecondary.withValues(alpha: 0.3))),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'or',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    Expanded(child: Divider(color: AppColors.textSecondary.withValues(alpha: 0.3))),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: authState.isLoading ? null : _demoLogin,
+                    child: const Text('Try Demo'),
                   ),
                 ),
               ],

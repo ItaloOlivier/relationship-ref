@@ -31,4 +31,13 @@ export class AuthController {
   async verifyMagicLink(@Query() dto: VerifyMagicLinkDto) {
     return this.authService.verifyMagicLink(dto.token);
   }
+
+  @Post('demo')
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 requests per minute
+  @ApiOperation({ summary: 'Demo login for testing purposes' })
+  @ApiResponse({ status: 200, description: 'Demo login successful' })
+  @ApiResponse({ status: 429, description: 'Too many requests' })
+  async demoLogin() {
+    return this.authService.demoLogin();
+  }
 }

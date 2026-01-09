@@ -91,4 +91,33 @@ export class AuthService {
       where: { id: userId },
     });
   }
+
+  async demoLogin(): Promise<{ accessToken: string; user: any }> {
+    const demoEmail = 'demo@relationshipreferee.app';
+
+    // Find or create demo user
+    let user = await this.prisma.user.findUnique({ where: { email: demoEmail } });
+
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: {
+          email: demoEmail,
+          name: 'Demo User',
+        },
+      });
+    }
+
+    // Generate JWT
+    const payload = { sub: user.id, email: user.email };
+    const accessToken = this.jwtService.sign(payload);
+
+    return {
+      accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+      },
+    };
+  }
 }
