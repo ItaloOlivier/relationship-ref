@@ -1,0 +1,13 @@
+[phases.setup]
+nixPkgs = ["nodejs_20", "npm-9_x", "openssl"]
+
+[phases.install]
+cmds = ["cd apps/api && npm ci"]
+cacheDirectories = []
+
+[phases.build]
+cmds = ["cd apps/api && npx prisma generate && npm run build"]
+cacheDirectories = []
+
+[start]
+cmd = "cd apps/api && npx prisma migrate deploy && npm run start:prod"
