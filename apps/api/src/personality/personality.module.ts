@@ -3,6 +3,7 @@ import { LinguisticAnalysisService } from './linguistic-analysis.service';
 import { AttachmentAnalyzerService } from './attachment-analyzer.service';
 import { BigFiveAnalyzerService } from './big-five-analyzer.service';
 import { RelationshipDynamicsService } from './relationship-dynamics.service';
+import { ProfileAggregatorService } from './profile-aggregator.service';
 import { PrismaModule } from '../common/prisma/prisma.module';
 
 @Module({
@@ -12,12 +13,14 @@ import { PrismaModule } from '../common/prisma/prisma.module';
     AttachmentAnalyzerService,
     BigFiveAnalyzerService,
     RelationshipDynamicsService,
+    ProfileAggregatorService,
   ],
   exports: [
     LinguisticAnalysisService,
     AttachmentAnalyzerService,
     BigFiveAnalyzerService,
     RelationshipDynamicsService,
+    ProfileAggregatorService,
   ],
 })
 export class PersonalityModule {}
