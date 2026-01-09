@@ -1,7 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import OpenAI from 'openai';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { LinguisticFeatures } from './linguistic-analysis.service';
+import { AiNarrativeService } from './ai-narrative.service';
 
 /**
  * Couple-level relationship dynamics analysis.
@@ -11,6 +10,8 @@ import { LinguisticFeatures } from './linguistic-analysis.service';
  * - Emotional reciprocity
  * - Conflict patterns (pursuer-withdrawer, escalation)
  * - Gottman ratios (positive:negative interactions)
+ *
+ * AI narratives powered by Claude Sonnet 4 via AiNarrativeService
  */
 
 export interface ParticipantFeatures {
@@ -71,14 +72,10 @@ export interface RelationshipDynamicsAnalysis {
 
 @Injectable()
 export class RelationshipDynamicsService {
-  private openai: OpenAI | null = null;
-
-  constructor(private configService: ConfigService) {
-    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
-    if (apiKey) {
-      this.openai = new OpenAI({ apiKey });
-    }
-  }
+  constructor(
+    @Inject(forwardRef(() => AiNarrativeService))
+    private aiNarrativeService: AiNarrativeService,
+  ) {}
 
   /**
    * Analyze relationship dynamics from both partners' linguistic features
@@ -502,144 +499,19 @@ export class RelationshipDynamicsService {
   }
 
   /**
-   * Generate couple narrative using LLM
+   * Generate couple narrative using Claude AI
+   * Delegates to AiNarrativeService for Claude Sonnet 4 integration
    */
   async generateCoupleNarrative(
     dynamics: RelationshipDynamicsAnalysis,
     participant1Name: string,
     participant2Name: string,
   ): Promise<{ dynamicNarrative: string; coachingFocus: string }> {
-    if (!this.openai) {
-      return this.generateFallbackCoupleNarrative(
-        dynamics,
-        participant1Name,
-        participant2Name,
-      );
-    }
-
-    try {
-      const prompt = `Analyze this couple's communication dynamics and provide insights:
-
-DYNAMICS DATA:
-- Conversation dominance: ${JSON.stringify(dynamics.dominance)}
-- Emotional reciprocity: ${dynamics.emotionalReciprocity}/100
-- Validation balance: ${dynamics.validationBalance}/100
-- Support balance: ${dynamics.supportBalance}/100
-- Escalation tendency: ${dynamics.escalationTendency}/100
-- Deescalation skill: ${dynamics.deescalationSkill}/100
-- Positive:Negative ratio: ${dynamics.positiveToNegativeRatio}:1 (5:1 is healthy target)
-- Pursuer-withdrawer pattern: ${dynamics.pursuerWithdrawer.isPursuerWithdrawer ? 'Yes' : 'No'}
-- Strengths: ${dynamics.relationshipStrengths.join(', ') || 'None identified'}
-- Growth areas: ${dynamics.growthOpportunities.join(', ') || 'None identified'}
-
-Generate two sections:
-
-DYNAMIC_NARRATIVE:
-[2-3 sentences describing how ${participant1Name} and ${participant2Name} interact, in warm accessible language]
-
-COACHING_FOCUS:
-[2-3 sentences about what this couple should focus on to strengthen their relationship]`;
-
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content:
-              'You are a compassionate couples therapist providing insights about relationship dynamics. Be warm, specific, and actionable. Focus on growth rather than blame.',
-          },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.7,
-        max_tokens: 500,
-      });
-
-      const content = response.choices[0]?.message?.content || '';
-      const narrativeMatch = content.match(
-        /DYNAMIC_NARRATIVE:\s*([^]*?)(?=COACHING_FOCUS:|$)/i,
-      );
-      const coachingMatch = content.match(/COACHING_FOCUS:\s*([^]*?)$/i);
-
-      return {
-        dynamicNarrative:
-          narrativeMatch?.[1]?.trim() ||
-          'Analysis in progress.',
-        coachingFocus:
-          coachingMatch?.[1]?.trim() ||
-          'Continue building your communication skills together.',
-      };
-    } catch {
-      return this.generateFallbackCoupleNarrative(
-        dynamics,
-        participant1Name,
-        participant2Name,
-      );
-    }
-  }
-
-  private generateFallbackCoupleNarrative(
-    dynamics: RelationshipDynamicsAnalysis,
-    participant1Name: string,
-    participant2Name: string,
-  ): { dynamicNarrative: string; coachingFocus: string } {
-    const narrativeParts: string[] = [];
-    const coachingParts: string[] = [];
-
-    // Conversation balance
-    const dominanceValues = Object.values(dynamics.dominance);
-    const dominanceDiff = Math.abs(dominanceValues[0] - dominanceValues[1]);
-    if (dominanceDiff < 20) {
-      narrativeParts.push(
-        `${participant1Name} and ${participant2Name} share conversation time fairly equally, indicating mutual engagement.`,
-      );
-    } else {
-      const dominant = Object.entries(dynamics.dominance).sort(
-        ([, a], [, b]) => b - a,
-      )[0][0];
-      narrativeParts.push(
-        `${dominant} tends to take more conversation space, which may mean ${participant1Name === dominant ? participant2Name : participant1Name} has fewer opportunities to express themselves.`,
-      );
-      coachingParts.push(
-        'Practice active listening and ensure both partners have space to share.',
-      );
-    }
-
-    // Gottman ratio
-    if (dynamics.positiveToNegativeRatio >= 5) {
-      narrativeParts.push(
-        'Your positive-to-negative interaction ratio is healthy, creating a foundation of warmth.',
-      );
-    } else if (dynamics.positiveToNegativeRatio < 2) {
-      narrativeParts.push(
-        'There are opportunities to increase positive interactions to strengthen your emotional connection.',
-      );
-      coachingParts.push(
-        'Try expressing appreciation, affection, and gratitude more frequently.',
-      );
-    }
-
-    // Pursuer-withdrawer
-    if (dynamics.pursuerWithdrawer.isPursuerWithdrawer) {
-      coachingParts.push(
-        'Work on the pursuer-withdrawer pattern - the pursuing partner can give space while the withdrawing partner can practice engaging.',
-      );
-    }
-
-    // Contempt
-    if (dynamics.growthOpportunities.includes('reduce_contempt')) {
-      coachingParts.push(
-        'Contempt is particularly harmful to relationships. Practice replacing criticism with specific, kind requests.',
-      );
-    }
-
-    return {
-      dynamicNarrative:
-        narrativeParts.join(' ') ||
-        `${participant1Name} and ${participant2Name} are building their communication patterns together.`,
-      coachingFocus:
-        coachingParts.join(' ') ||
-        'Continue practicing open, honest communication and expressing appreciation for each other.',
-    };
+    return this.aiNarrativeService.generateCoupleNarrative(
+      dynamics,
+      participant1Name,
+      participant2Name,
+    );
   }
 
   private calculateConfidence(totalWords: number): number {
