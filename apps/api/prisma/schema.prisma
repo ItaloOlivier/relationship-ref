@@ -1,0 +1,288 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// AUTH & USERS
+// ============================================================================
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  magicLinks       MagicLink[]
+  coupleAsPartner1 Couple[]          @relation("Partner1")
+  coupleAsPartner2 Couple[]          @relation("Partner2")
+  sessions         Session[]
+  bankEntries      EmotionalBankEntry[]
+  questProgress    QuestProgress[]
+  streaks          Streak[]
+
+  @@map("users")
+}
+
+model MagicLink {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@map("magic_links")
+}
+
+// ============================================================================
+// COUPLES
+// ============================================================================
+
+model Couple {
+  id         String   @id @default(cuid())
+  inviteCode String   @unique
+  partner1Id String
+  partner2Id String?
+  partner1   User     @relation("Partner1", fields: [partner1Id], references: [id], onDelete: Cascade)
+  partner2   User?    @relation("Partner2", fields: [partner2Id], references: [id], onDelete: SetNull)
+  name       String?  // Optional couple name
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  sessions      Session[]
+  bankLedger    EmotionalBankLedger?
+  weeklyReports WeeklyReport[]
+  quests        Quest[]
+
+  @@map("couples")
+}
+
+// ============================================================================
+// SESSIONS & ANALYSIS
+// ============================================================================
+
+enum SessionStatus {
+  RECORDING
+  UPLOADED
+  TRANSCRIBING
+  ANALYZING
+  COMPLETED
+  FAILED
+}
+
+model Session {
+  id           String        @id @default(cuid())
+  coupleId     String
+  couple       Couple        @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  initiatorId  String
+  initiator    User          @relation(fields: [initiatorId], references: [id])
+  status       SessionStatus @default(RECORDING)
+  durationSecs Int?
+  audioUrl     String?       // Only if user opted to retain audio
+  retainAudio  Boolean       @default(false)
+  transcript   String?       @db.Text
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Relations
+  analysisResult AnalysisResult?
+  bankEntries    EmotionalBankEntry[]
+
+  @@index([coupleId])
+  @@index([initiatorId])
+  @@map("sessions")
+}
+
+enum CardType {
+  GREEN
+  YELLOW
+  RED
+}
+
+model AnalysisResult {
+  id        String   @id @default(cuid())
+  sessionId String   @unique
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // Scores
+  overallScore     Int      // 0-100
+  greenCardCount   Int      @default(0)
+  yellowCardCount  Int      @default(0)
+  redCardCount     Int      @default(0)
+  bankChange       Int      @default(0) // Net emotional bank change
+
+  // Detailed breakdown (JSON)
+  cards            Json     // Array of { type, reason, timestamp?, quote? }
+  horsemenDetected Json     // Array of detected horsemen patterns
+  repairAttempts   Json     // Array of repair attempts detected
+  topicTags        String[] // Conversation topics
+
+  // Coaching output
+  whatWentWell     String?  @db.Text
+  tryNextTime      String?  @db.Text
+  repairSuggestion String?  @db.Text
+
+  // Safety flag
+  safetyFlagTriggered Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@map("analysis_results")
+}
+
+// ============================================================================
+// EMOTIONAL BANK ACCOUNT
+// ============================================================================
+
+model EmotionalBankLedger {
+  id        String   @id @default(cuid())
+  coupleId  String   @unique
+  couple    Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  balance   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entries EmotionalBankEntry[]
+
+  @@map("emotional_bank_ledgers")
+}
+
+enum BankEntryType {
+  DEPOSIT
+  WITHDRAWAL
+}
+
+model EmotionalBankEntry {
+  id        String        @id @default(cuid())
+  ledgerId  String
+  ledger    EmotionalBankLedger @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
+  sessionId String?
+  session   Session?      @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  userId    String?
+  user      User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  type      BankEntryType
+  amount    Int
+  reason    String
+  category  String        // e.g., "appreciation", "contempt", etc.
+  createdAt DateTime      @default(now())
+
+  @@index([ledgerId])
+  @@map("emotional_bank_entries")
+}
+
+// ============================================================================
+// GAMIFICATION
+// ============================================================================
+
+enum QuestType {
+  DAILY
+  WEEKLY
+}
+
+enum QuestStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+}
+
+model Quest {
+  id          String      @id @default(cuid())
+  coupleId    String
+  couple      Couple      @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  type        QuestType
+  status      QuestStatus @default(ACTIVE)
+  title       String
+  description String
+  targetValue Int         @default(1) // e.g., "Complete 1 session"
+  rewardPoints Int        @default(10)
+  expiresAt   DateTime
+  createdAt   DateTime    @default(now())
+  completedAt DateTime?
+
+  progress QuestProgress[]
+
+  @@index([coupleId])
+  @@map("quests")
+}
+
+model QuestProgress {
+  id           String   @id @default(cuid())
+  questId      String
+  quest        Quest    @relation(fields: [questId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentValue Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([questId, userId])
+  @@map("quest_progress")
+}
+
+model Streak {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentStreak Int     @default(0)
+  longestStreak Int     @default(0)
+  lastActivityDate DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId])
+  @@map("streaks")
+}
+
+// ============================================================================
+// REPORTS
+// ============================================================================
+
+model WeeklyReport {
+  id        String   @id @default(cuid())
+  coupleId  String
+  couple    Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  weekStart DateTime
+  weekEnd   DateTime
+
+  // Summary stats
+  sessionCount     Int
+  totalGreenCards  Int
+  totalYellowCards Int
+  totalRedCards    Int
+  bankChangeNet    Int
+  averageScore     Float
+
+  // Insights (JSON)
+  highlights       Json   // Array of positive highlights
+  areasToImprove   Json   // Array of areas needing work
+  weeklyTip        String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@unique([coupleId, weekStart])
+  @@map("weekly_reports")
+}
+
+// ============================================================================
+// SCORING CONFIGURATION
+// ============================================================================
+
+model ScoringConfig {
+  id       String @id @default(cuid())
+  category String @unique // e.g., "appreciation", "contempt"
+  points   Int
+  cardType CardType?
+  isActive Boolean @default(true)
+  updatedAt DateTime @updatedAt
+
+  @@map("scoring_configs")
+}
