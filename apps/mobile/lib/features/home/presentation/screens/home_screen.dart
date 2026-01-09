@@ -59,6 +59,10 @@ class HomeScreen extends ConsumerWidget {
 
               // Start Session Button
               _StartSessionButton(),
+              const SizedBox(height: 12),
+
+              // Import WhatsApp Chat Button
+              _ImportChatButton(),
               const SizedBox(height: 24),
 
               // Recent Sessions
@@ -269,6 +273,23 @@ class _StartSessionButton extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ImportChatButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => context.push('/import-chat'),
+        icon: const Icon(Icons.chat_bubble_outline),
+        label: const Text('Import WhatsApp Chat'),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
         ),
       ),
     );

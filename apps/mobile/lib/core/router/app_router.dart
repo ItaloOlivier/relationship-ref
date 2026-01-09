@@ -5,6 +5,7 @@ import '../../features/auth/presentation/screens/auth_screen.dart';
 import '../../features/auth/presentation/screens/magic_link_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/session/presentation/screens/session_screen.dart';
+import '../../features/session/presentation/screens/chat_import_screen.dart';
 import '../../features/report/presentation/screens/report_screen.dart';
 import '../../features/history/presentation/screens/history_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
@@ -63,6 +64,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/session',
         name: 'session',
         builder: (context, state) => const SessionScreen(),
+      ),
+      GoRoute(
+        path: '/import-chat',
+        name: 'import-chat',
+        builder: (context, state) => const ChatImportScreen(),
       ),
       GoRoute(
         path: '/report/:sessionId',

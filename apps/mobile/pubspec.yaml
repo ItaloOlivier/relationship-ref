@@ -60,6 +60,9 @@ dependencies:
   # Routing
   go_router: ^14.6.2
 
+  # File handling
+  file_picker: ^8.1.7
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -80,5 +83,11 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/images/onboarding/
+    - assets/images/empty_states/
+    - assets/images/cards/
+    - assets/images/brand/
+    - assets/images/session/
+    - assets/images/gamification/
     - assets/animations/
     - .env

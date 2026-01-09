@@ -110,6 +110,18 @@ class SessionsApi {
   Future<void> deleteSession(String id) async {
     await _client.delete('/sessions/$id');
   }
+
+  /// Import a WhatsApp chat export for analysis
+  Future<Map<String, dynamic>> importWhatsAppChat({
+    required String chatContent,
+    String? fileName,
+  }) async {
+    final response = await _client.post('/sessions/import-whatsapp', data: {
+      'chatContent': chatContent,
+      if (fileName != null) 'fileName': fileName,
+    });
+    return response.data;
+  }
 }
 
 // Gamification API
