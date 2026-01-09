@@ -76,6 +76,15 @@ flutter build ios     # Build iOS
 3. Users can delete all data
 4. Safety resources shown for concerning patterns
 5. No always-on listening
+6. WhatsApp imports require user to manually export and select file
+
+## Session Source Types
+
+Sessions can come from two sources:
+- **AUDIO**: Live recorded conversation (default)
+- **WHATSAPP_CHAT**: Imported from WhatsApp chat export
+
+Both types go through the same analysis pipeline and generate the same Match Report.
 
 ## Testing Requirements
 
@@ -105,6 +114,7 @@ POST /sessions/:id/transcribe - Transcribe audio
 POST /sessions/:id/analyze    - Analyze transcript
 GET  /sessions/:id/report     - Get match report
 DELETE /sessions/:id      - Delete session
+POST /sessions/import-whatsapp - Import WhatsApp chat export
 
 GET  /gamification/dashboard - Get stats
 GET  /gamification/quests    - Get active quests
