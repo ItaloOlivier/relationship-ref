@@ -27,6 +27,7 @@ model User {
   bankEntries      EmotionalBankEntry[]
   questProgress    QuestProgress[]
   streaks          Streak[]
+  personalityProfile PersonalityProfile?
 
   @@map("users")
 }
@@ -59,10 +60,11 @@ model Couple {
   updatedAt  DateTime @updatedAt
 
   // Relations
-  sessions      Session[]
-  bankLedger    EmotionalBankLedger?
-  weeklyReports WeeklyReport[]
-  quests        Quest[]
+  sessions            Session[]
+  bankLedger          EmotionalBankLedger?
+  weeklyReports       WeeklyReport[]
+  quests              Quest[]
+  relationshipDynamic RelationshipDynamic?
 
   @@map("couples")
 }
@@ -106,8 +108,9 @@ model Session {
   chatParticipants    String[]   // Names extracted from chat export
 
   // Relations
-  analysisResult AnalysisResult?
-  bankEntries    EmotionalBankEntry[]
+  analysisResult      AnalysisResult?
+  bankEntries         EmotionalBankEntry[]
+  linguisticSnapshots LinguisticSnapshot[]
 
   @@index([coupleId])
   @@index([initiatorId])
@@ -296,4 +299,188 @@ model ScoringConfig {
   updatedAt DateTime @updatedAt
 
   @@map("scoring_configs")
+}
+
+// ============================================================================
+// PERSONALITY PROFILES
+// ============================================================================
+
+// Big Five (OCEAN) traits - stored as 0-100 scores
+// Attachment styles based on Bowlby/Ainsworth
+// Communication patterns based on Satir model
+
+enum AttachmentStyle {
+  SECURE
+  ANXIOUS_PREOCCUPIED
+  DISMISSIVE_AVOIDANT
+  FEARFUL_AVOIDANT
+  UNDETERMINED
+}
+
+enum CommunicationStyle {
+  PLACATER         // Agreeing, peace-keeping
+  BLAMER           // Attacking, defensive
+  COMPUTER         // Intellectual, detached
+  DISTRACTER       // Deflecting, avoiding
+  LEVELER          // Direct, authentic (healthy)
+  MIXED            // No dominant pattern
+}
+
+model PersonalityProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Big Five (OCEAN) - 0 to 100 scale
+  openness          Float?  // Curiosity, creativity, openness to experience
+  conscientiousness Float?  // Organization, dependability, self-discipline
+  extraversion      Float?  // Sociability, assertiveness, positive emotions
+  agreeableness     Float?  // Cooperation, trust, empathy
+  neuroticism       Float?  // Emotional instability, anxiety, moodiness
+
+  // Attachment Style
+  attachmentStyle   AttachmentStyle @default(UNDETERMINED)
+  attachmentAnxiety Float?  // 0-100: fear of abandonment
+  attachmentAvoidance Float? // 0-100: discomfort with closeness
+
+  // Communication Style (Satir model)
+  communicationStyle CommunicationStyle @default(MIXED)
+
+  // Emotional Intelligence indicators
+  emotionalAwareness Float?  // 0-100: recognition of own emotions
+  empathyScore       Float?  // 0-100: recognition of partner's emotions
+  emotionalRegulation Float? // 0-100: ability to manage emotional responses
+
+  // Conflict patterns
+  conflictStyle      String?  // "avoiding", "accommodating", "competing", "compromising", "collaborating"
+  repairInitiation   Float?   // 0-100: tendency to initiate repairs
+  repairReceptivity  Float?   // 0-100: receptivity to partner's repairs
+
+  // Confidence scores for traits (how reliable the inference is)
+  confidenceScore    Float    @default(0)  // 0-100: overall confidence in profile
+  sessionsAnalyzed   Int      @default(0)  // Number of sessions used to build profile
+
+  // AI-generated narrative descriptions
+  strengthsNarrative String?  @db.Text
+  growthAreasNarrative String? @db.Text
+  communicationNarrative String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  snapshots LinguisticSnapshot[]
+
+  @@map("personality_profiles")
+}
+
+// Stores raw linguistic features per session for evolution tracking
+model LinguisticSnapshot {
+  id        String   @id @default(cuid())
+  profileId String
+  profile   PersonalityProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  sessionId String
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // Participant identifier within session (e.g., "John" from WhatsApp)
+  participantName String
+
+  // Word counts and ratios
+  totalWords       Int
+  uniqueWords      Int
+  avgWordLength    Float
+  avgSentenceLength Float
+
+  // Pronoun usage (LIWC-style)
+  firstPersonSingular Float  // I, me, my - self-focus
+  firstPersonPlural   Float  // We, us, our - shared identity
+  secondPerson        Float  // You, your - other-focus
+  thirdPerson         Float  // He, she, they - distancing
+
+  // Emotional language
+  positiveEmotionWords Float  // love, happy, good
+  negativeEmotionWords Float  // hate, angry, bad
+  anxietyWords         Float  // worried, nervous, afraid
+  angerWords           Float  // angry, hate, furious
+  sadnessWords         Float  // sad, cry, disappointed
+
+  // Cognitive patterns
+  certaintyWords   Float  // always, never, definitely
+  tentativeWords   Float  // maybe, perhaps, might
+  discrepancyWords Float  // should, would, could (unmet expectations)
+
+  // Social dynamics
+  affiliationWords Float  // friend, together, share
+  achievementWords Float  // win, success, better
+  powerWords       Float  // control, force, superior
+
+  // Communication markers
+  questionFrequency Float  // Questions asked
+  exclamationFrequency Float
+  hedgingPhrases   Float  // "I think", "I feel like", "sort of"
+
+  // Gottman patterns detected in this session
+  criticismCount   Int @default(0)
+  contemptCount    Int @default(0)
+  defensivenessCount Int @default(0)
+  stonewallingCount Int @default(0)
+
+  // Repair attempts
+  repairAttemptCount Int @default(0)
+  repairSuccessRate Float?
+
+  // Raw feature vector for ML (JSON blob)
+  featureVector    Json?
+
+  createdAt DateTime @default(now())
+
+  @@unique([sessionId, participantName])
+  @@index([profileId])
+  @@map("linguistic_snapshots")
+}
+
+// Couple-level relationship dynamics
+model RelationshipDynamic {
+  id        String   @id @default(cuid())
+  coupleId  String   @unique
+  couple    Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+
+  // Interaction patterns
+  pursuerWithdrawer   Boolean?  // Is there a pursuer-withdrawer dynamic?
+  pursuerId           String?   // User ID of pursuer (if applicable)
+
+  // Power balance
+  conversationDominance Json?   // { "user1Id": 55, "user2Id": 45 } talk time %
+  interruptionPattern   Json?   // Who interrupts whom more
+  topicInitiation       Json?   // Who starts conversations/topics
+
+  // Emotional reciprocity
+  emotionalReciprocity Float?   // 0-100: balance of emotional labor
+  validationBalance    Float?   // 0-100: mutual validation
+  supportBalance       Float?   // 0-100: mutual support offered
+
+  // Conflict patterns
+  escalationTendency   Float?   // 0-100: how quickly conflicts escalate
+  deescalationSkill    Float?   // 0-100: ability to calm conflicts
+  resolutionRate       Float?   // 0-100: % of conflicts reaching resolution
+
+  // Gottman ratios
+  positiveToNegativeRatio Float? // 5:1 is healthy target
+
+  // Strengths and growth areas (AI-generated)
+  relationshipStrengths String[] // e.g., ["humor", "repair attempts", "appreciation"]
+  growthOpportunities   String[] // e.g., ["active listening", "emotional validation"]
+
+  // AI-generated insights
+  dynamicNarrative      String?  @db.Text  // Accessible description of dynamics
+  coachingFocus         String?  @db.Text  // What to work on together
+
+  // Confidence and data
+  confidenceScore       Float    @default(0)
+  sessionsAnalyzed      Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("relationship_dynamics")
 }

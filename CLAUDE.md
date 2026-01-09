@@ -50,6 +50,7 @@ flutter build ios     # Build iOS
 - [ ] Phase 2: Flutter MVP
 - [ ] Phase 3: Gamification Layer
 - [ ] Phase 4: Polish & Hardening
+- [ ] Phase 5: Personality Profiles (in progress)
 
 ## Key Domain Concepts
 
@@ -119,3 +120,32 @@ POST /sessions/import-whatsapp - Import WhatsApp chat export
 GET  /gamification/dashboard - Get stats
 GET  /gamification/quests    - Get active quests
 ```
+
+## Personality Profiles
+
+### Overview
+The app builds psychological profiles for each user based on their communication patterns in imported chats. Profiles are grounded in validated psychological research:
+
+- **Big Five (OCEAN)**: Openness, Conscientiousness, Extraversion, Agreeableness, Neuroticism
+- **Attachment Style**: Based on Bowlby/Ainsworth theory (Secure, Anxious, Avoidant, Fearful)
+- **Communication Style**: Based on Satir model (Placater, Blamer, Computer, Distracter, Leveler)
+- **Emotional Intelligence**: Awareness, empathy, regulation scores
+- **Conflict Patterns**: Thomas-Kilmann conflict styles
+
+### Data Models
+- `PersonalityProfile`: Per-user profile with all trait scores and narratives
+- `LinguisticSnapshot`: Raw linguistic features extracted per session for evolution tracking
+- `RelationshipDynamic`: Couple-level patterns (pursuer-withdrawer, power balance, etc.)
+
+### Linguistic Analysis
+The `LinguisticAnalysisService` extracts LIWC-style features from text:
+- Pronoun usage (I/we/you ratios)
+- Emotion words (positive, negative, anxiety, anger, sadness)
+- Cognitive patterns (certainty, tentative, discrepancy words)
+- Social dynamics (affiliation, achievement, power words)
+- Communication markers (questions, exclamations, hedging)
+- Four Horsemen detection (criticism, contempt, defensiveness, stonewalling)
+- Repair attempt detection
+
+### Profile Evolution
+Profiles evolve over time as more sessions are analyzed. Each session creates a `LinguisticSnapshot` that contributes to the running profile averages with confidence scores based on data quantity.
