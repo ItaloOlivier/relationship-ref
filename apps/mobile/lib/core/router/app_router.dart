@@ -8,6 +8,7 @@ import '../../features/session/presentation/screens/session_screen.dart';
 import '../../features/report/presentation/screens/report_screen.dart';
 import '../../features/history/presentation/screens/history_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/gamification/presentation/screens/gamification_screen.dart';
 import '../auth/auth_provider.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -80,6 +81,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/settings',
         name: 'settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/gamification',
+        name: 'gamification',
+        builder: (context, state) => const GamificationScreen(),
       ),
     ],
   );
