@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../session/domain/session_model.dart';
+import '../../../session/data/session_repository.dart';
 
 class ReportScreen extends ConsumerWidget {
   final String sessionId;
@@ -10,7 +12,8 @@ class ReportScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // TODO: Load actual report data
+    final sessionAsync = ref.watch(sessionProvider(sessionId));
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Match Report'),
@@ -19,82 +22,239 @@ class ReportScreen extends ConsumerWidget {
             icon: const Icon(Icons.share),
             onPressed: () {
               // TODO: Share report
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Share feature coming soon!')),
+              );
             },
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: sessionAsync.when(
+        data: (session) => _buildReport(context, session),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => _buildError(context, error),
+      ),
+    );
+  }
+
+  Widget _buildError(BuildContext context, Object error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Overall Score
-            _OverallScoreCard(score: 75),
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: AppColors.error,
+            ),
             const SizedBox(height: 16),
-
-            // Cards Summary
-            _CardsSummaryCard(green: 5, yellow: 2, red: 1),
-            const SizedBox(height: 16),
-
-            // Emotional Bank Change
-            _BankChangeCard(change: 12),
-            const SizedBox(height: 24),
-
-            // Coaching Feedback
             Text(
-              'Coaching Feedback',
+              'Failed to load report',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error.toString(),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => context.go('/home'),
+              child: const Text('Return Home'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReport(BuildContext context, Session session) {
+    final result = session.analysisResult;
+
+    if (result == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(
+              'Analysis in progress...',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Overall Score
+          _OverallScoreCard(score: result.overallScore),
+          const SizedBox(height: 16),
+
+          // Cards Summary
+          _CardsSummaryCard(
+            green: result.greenCardCount,
+            yellow: result.yellowCardCount,
+            red: result.redCardCount,
+          ),
+          const SizedBox(height: 16),
+
+          // Emotional Bank Change
+          _BankChangeCard(change: result.bankChange),
+          const SizedBox(height: 24),
+
+          // Topic Tags
+          if (result.topicTags.isNotEmpty) ...[
+            Text(
+              'Topics Discussed',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: result.topicTags.map((tag) {
+                return Chip(
+                  label: Text(tag),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 24),
+          ],
 
+          // Coaching Feedback
+          Text(
+            'Coaching Feedback',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 12),
+
+          if (result.whatWentWell != null && result.whatWentWell!.isNotEmpty)
             _FeedbackCard(
               icon: Icons.thumb_up_rounded,
               title: 'What You Did Well',
-              content: 'You showed great empathy when your partner shared their concerns. The phrase "I understand how you feel" was particularly effective.',
+              content: result.whatWentWell!,
               color: AppColors.greenCard,
             ),
-            const SizedBox(height: 12),
+          const SizedBox(height: 12),
 
+          if (result.tryNextTime != null && result.tryNextTime!.isNotEmpty)
             _FeedbackCard(
               icon: Icons.lightbulb_rounded,
               title: 'Try This Next Time',
-              content: 'Instead of saying "you always," try using "I" statements like "I feel..." to express your emotions without blame.',
+              content: result.tryNextTime!,
               color: AppColors.yellowCard,
             ),
-            const SizedBox(height: 12),
+          const SizedBox(height: 12),
 
+          if (result.repairSuggestion != null && result.repairSuggestion!.isNotEmpty)
             _FeedbackCard(
               icon: Icons.healing_rounded,
               title: 'Repair Suggestion',
-              content: '"I know we\'re both stressed right now. Let\'s take a breath and try to understand each other better. I want us to work through this together."',
+              content: result.repairSuggestion!,
               color: AppColors.primary,
             ),
+          const SizedBox(height: 24),
+
+          // Card Details
+          if (result.cards.isNotEmpty) ...[
+            Text(
+              'Card Details',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 12),
+            ...result.cards.map((card) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _CardDetailItem(card: card),
+            )),
+            const SizedBox(height: 12),
+          ],
+
+          // Safety Resources (only shown if flagged)
+          if (result.safetyFlagTriggered) ...[
+            _SafetyResourcesCard(resources: result.safetyResources),
             const SizedBox(height: 24),
+          ],
 
-            // Safety Resources (only shown if flagged)
-            // _SafetyResourcesCard(),
+          // Actions
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    // Show transcript modal
+                    _showTranscriptModal(context, session.transcript);
+                  },
+                  icon: const Icon(Icons.article),
+                  label: const Text('Transcript'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => context.go('/home'),
+                  icon: const Icon(Icons.home),
+                  label: const Text('Done'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
 
-            // Actions
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      // TODO: View detailed analysis
-                    },
-                    icon: const Icon(Icons.analytics),
-                    label: const Text('Details'),
+  void _showTranscriptModal(BuildContext context, String? transcript) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Text(
+                    'Transcript',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: SingleChildScrollView(
+                controller: scrollController,
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  transcript ?? 'No transcript available',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    height: 1.6,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => context.go('/home'),
-                    icon: const Icon(Icons.home),
-                    label: const Text('Done'),
-                  ),
-                ),
-              ],
+              ),
             ),
           ],
         ),
@@ -286,7 +446,7 @@ class _BankChangeCard extends StatelessWidget {
               height: 48,
               decoration: BoxDecoration(
                 color: (isPositive ? AppColors.bankPositive : AppColors.bankNegative)
-                    .withOpacity(0.1),
+                    .withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -358,6 +518,153 @@ class _FeedbackCard extends StatelessWidget {
                 height: 1.5,
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CardDetailItem extends StatelessWidget {
+  final SessionCard card;
+
+  const _CardDetailItem({required this.card});
+
+  Color _getCardColor() {
+    switch (card.type) {
+      case CardType.green:
+        return AppColors.greenCard;
+      case CardType.yellow:
+        return AppColors.yellowCard;
+      case CardType.red:
+        return AppColors.redCard;
+    }
+  }
+
+  IconData _getCardIcon() {
+    switch (card.type) {
+      case CardType.green:
+        return Icons.check_circle;
+      case CardType.yellow:
+        return Icons.warning;
+      case CardType.red:
+        return Icons.cancel;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          left: BorderSide(
+            color: _getCardColor(),
+            width: 4,
+          ),
+        ),
+        color: _getCardColor().withValues(alpha: 0.05),
+        borderRadius: const BorderRadius.only(
+          topRight: Radius.circular(8),
+          bottomRight: Radius.circular(8),
+        ),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(_getCardIcon(), color: _getCardColor(), size: 18),
+              const SizedBox(width: 8),
+              Text(
+                card.category,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: _getCardColor(),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            card.reason,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          if (card.quote != null && card.quote!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                '"${card.quote}"',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SafetyResourcesCard extends StatelessWidget {
+  final SafetyResources? resources;
+
+  const _SafetyResourcesCard({this.resources});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: AppColors.warning.withValues(alpha: 0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.support_rounded, color: AppColors.warning),
+                const SizedBox(width: 8),
+                Text(
+                  'Support Resources',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: AppColors.warning,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              resources?.message ??
+                'We noticed some concerning patterns in your conversation. '
+                'If you or your partner need support, these resources may help.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            if (resources != null && resources!.resources.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              ...resources!.resources.map((resource) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.phone, size: 16),
+                    const SizedBox(width: 8),
+                    Text(resource.name),
+                    const Spacer(),
+                    Text(
+                      resource.phone ?? '',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+            ],
           ],
         ),
       ),
