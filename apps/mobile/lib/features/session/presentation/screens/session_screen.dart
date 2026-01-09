@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
-
-enum SessionState { consent, recording, processing, complete }
+import '../../data/recording_provider.dart';
 
 class SessionScreen extends ConsumerStatefulWidget {
   const SessionScreen({super.key});
@@ -13,43 +12,35 @@ class SessionScreen extends ConsumerStatefulWidget {
 }
 
 class _SessionScreenState extends ConsumerState<SessionScreen> {
-  SessionState _state = SessionState.consent;
-  int _elapsedSeconds = 0;
-  bool _isPaused = false;
+  bool _consentGiven = false;
+  bool _retainAudio = false;
 
-  void _startRecording() {
-    setState(() => _state = SessionState.recording);
-    _startTimer();
-    // TODO: Start actual audio recording
+  @override
+  void dispose() {
+    super.dispose();
   }
 
-  void _startTimer() {
-    Future.doWhile(() async {
-      await Future.delayed(const Duration(seconds: 1));
-      if (!mounted || _state != SessionState.recording) return false;
-      if (!_isPaused) {
-        setState(() => _elapsedSeconds++);
-      }
-      return true;
-    });
+  void _startRecording() {
+    setState(() => _consentGiven = true);
+    ref.read(recordingProvider.notifier).startRecording();
   }
 
   void _togglePause() {
-    setState(() => _isPaused = !_isPaused);
+    final status = ref.read(recordingProvider);
+    if (status.state == RecordingState.recording) {
+      ref.read(recordingProvider.notifier).pauseRecording();
+    } else if (status.state == RecordingState.paused) {
+      ref.read(recordingProvider.notifier).resumeRecording();
+    }
   }
 
   void _stopRecording() {
-    setState(() => _state = SessionState.processing);
-    // TODO: Stop recording and upload
-    _processSession();
+    ref.read(recordingProvider.notifier).stopRecording(retainAudio: _retainAudio);
   }
 
-  Future<void> _processSession() async {
-    // Simulate processing
-    await Future.delayed(const Duration(seconds: 3));
-    if (mounted) {
-      setState(() => _state = SessionState.complete);
-    }
+  void _cancelRecording() {
+    ref.read(recordingProvider.notifier).cancelRecording();
+    context.pop();
   }
 
   String _formatDuration(int seconds) {
@@ -60,48 +51,84 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final status = ref.watch(recordingProvider);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(_getTitle()),
-        leading: _state == SessionState.recording
-            ? null
-            : IconButton(
+        title: Text(_getTitle(status)),
+        leading: _shouldShowCloseButton(status)
+            ? IconButton(
                 icon: const Icon(Icons.close),
-                onPressed: () => context.pop(),
-              ),
+                onPressed: () {
+                  if (status.state == RecordingState.recording ||
+                      status.state == RecordingState.paused) {
+                    _showCancelDialog();
+                  } else {
+                    ref.read(recordingProvider.notifier).reset();
+                    context.pop();
+                  }
+                },
+              )
+            : null,
+        automaticallyImplyLeading: false,
       ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: _buildContent(),
+          child: _buildContent(status),
         ),
       ),
     );
   }
 
-  String _getTitle() {
-    switch (_state) {
-      case SessionState.consent:
+  bool _shouldShowCloseButton(RecordingStatus status) {
+    return status.state != RecordingState.uploading &&
+        status.state != RecordingState.processing;
+  }
+
+  String _getTitle(RecordingStatus status) {
+    if (!_consentGiven) return 'Start Session';
+    switch (status.state) {
+      case RecordingState.idle:
         return 'Start Session';
-      case SessionState.recording:
+      case RecordingState.permissionDenied:
+        return 'Permission Required';
+      case RecordingState.recording:
         return 'Recording';
-      case SessionState.processing:
+      case RecordingState.paused:
+        return 'Paused';
+      case RecordingState.uploading:
+        return 'Uploading';
+      case RecordingState.processing:
         return 'Analyzing';
-      case SessionState.complete:
+      case RecordingState.complete:
         return 'Complete';
+      case RecordingState.error:
+        return 'Error';
     }
   }
 
-  Widget _buildContent() {
-    switch (_state) {
-      case SessionState.consent:
+  Widget _buildContent(RecordingStatus status) {
+    if (!_consentGiven) {
+      return _buildConsentScreen();
+    }
+
+    switch (status.state) {
+      case RecordingState.idle:
         return _buildConsentScreen();
-      case SessionState.recording:
-        return _buildRecordingScreen();
-      case SessionState.processing:
+      case RecordingState.permissionDenied:
+        return _buildPermissionDeniedScreen();
+      case RecordingState.recording:
+      case RecordingState.paused:
+        return _buildRecordingScreen(status);
+      case RecordingState.uploading:
+        return _buildUploadingScreen(status);
+      case RecordingState.processing:
         return _buildProcessingScreen();
-      case SessionState.complete:
-        return _buildCompleteScreen();
+      case RecordingState.complete:
+        return _buildCompleteScreen(status);
+      case RecordingState.error:
+        return _buildErrorScreen(status);
     }
   }
 
@@ -157,6 +184,21 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                   title: 'Coaching, Not Judgment',
                   description: 'Our analysis focuses on helping you grow together, not keeping score.',
                 ),
+                const SizedBox(height: 24),
+                // Audio retention option
+                Card(
+                  child: CheckboxListTile(
+                    value: _retainAudio,
+                    onChanged: (value) {
+                      setState(() => _retainAudio = value ?? false);
+                    },
+                    title: const Text('Keep audio recording'),
+                    subtitle: const Text(
+                      'Store the audio file for later review. By default, only the transcript is kept.',
+                    ),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                ),
               ],
             ),
           ),
@@ -174,7 +216,57 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
     );
   }
 
-  Widget _buildRecordingScreen() {
+  Widget _buildPermissionDeniedScreen() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 100,
+          height: 100,
+          decoration: BoxDecoration(
+            color: AppColors.warning.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.mic_off_rounded,
+            size: 48,
+            color: AppColors.warning,
+          ),
+        ),
+        const SizedBox(height: 24),
+        Text(
+          'Microphone Permission Required',
+          style: Theme.of(context).textTheme.headlineMedium,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'To record your conversation, please grant microphone access in your device settings.',
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: AppColors.textSecondary,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 32),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _startRecording,
+            child: const Text('Try Again'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextButton(
+          onPressed: () => context.pop(),
+          child: const Text('Cancel'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecordingScreen(RecordingStatus status) {
+    final isPaused = status.state == RecordingState.paused;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -207,7 +299,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                _isPaused ? Icons.pause : Icons.mic,
+                isPaused ? Icons.pause : Icons.mic,
                 color: Colors.white,
                 size: 48,
               ),
@@ -216,7 +308,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
         ),
         const SizedBox(height: 32),
         Text(
-          _formatDuration(_elapsedSeconds),
+          _formatDuration(status.elapsedSeconds),
           style: Theme.of(context).textTheme.displayLarge?.copyWith(
             fontWeight: FontWeight.bold,
             fontFeatures: [const FontFeature.tabularFigures()],
@@ -224,9 +316,9 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          _isPaused ? 'Paused' : 'Recording...',
+          isPaused ? 'Paused' : 'Recording...',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: _isPaused ? AppColors.warning : AppColors.error,
+            color: isPaused ? AppColors.warning : AppColors.error,
           ),
         ),
         const Spacer(),
@@ -236,7 +328,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
             // Pause button
             IconButton.filled(
               onPressed: _togglePause,
-              icon: Icon(_isPaused ? Icons.play_arrow : Icons.pause),
+              icon: Icon(isPaused ? Icons.play_arrow : Icons.pause),
               iconSize: 32,
               style: IconButton.styleFrom(
                 backgroundColor: AppColors.textSecondary,
@@ -263,6 +355,33 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
     );
   }
 
+  Widget _buildUploadingScreen(RecordingStatus status) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const CircularProgressIndicator(),
+        const SizedBox(height: 32),
+        Text(
+          'Uploading your recording...',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Please keep the app open',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        if (status.uploadProgress != null) ...[
+          const SizedBox(height: 24),
+          LinearProgressIndicator(value: status.uploadProgress),
+          const SizedBox(height: 8),
+          Text('${(status.uploadProgress! * 100).toInt()}%'),
+        ],
+      ],
+    );
+  }
+
   Widget _buildProcessingScreen() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -284,7 +403,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
     );
   }
 
-  Widget _buildCompleteScreen() {
+  Widget _buildCompleteScreen(RecordingStatus status) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -318,18 +437,101 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: () {
-              // TODO: Navigate to actual session report
-              context.go('/report/session-123');
+              final sessionId = status.sessionId ?? 'session-unknown';
+              ref.read(recordingProvider.notifier).reset();
+              context.go('/report/$sessionId');
             },
             child: const Text('View Match Report'),
           ),
         ),
         const SizedBox(height: 16),
         TextButton(
-          onPressed: () => context.go('/home'),
+          onPressed: () {
+            ref.read(recordingProvider.notifier).reset();
+            context.go('/home');
+          },
           child: const Text('Return Home'),
         ),
       ],
+    );
+  }
+
+  Widget _buildErrorScreen(RecordingStatus status) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 100,
+          height: 100,
+          decoration: BoxDecoration(
+            color: AppColors.error.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.error_outline_rounded,
+            size: 64,
+            color: AppColors.error,
+          ),
+        ),
+        const SizedBox(height: 24),
+        Text(
+          'Something went wrong',
+          style: Theme.of(context).textTheme.headlineLarge,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          status.error ?? 'An unexpected error occurred',
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: AppColors.textSecondary,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 48),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () {
+              ref.read(recordingProvider.notifier).reset();
+              setState(() => _consentGiven = false);
+            },
+            child: const Text('Try Again'),
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextButton(
+          onPressed: () {
+            ref.read(recordingProvider.notifier).reset();
+            context.go('/home');
+          },
+          child: const Text('Return Home'),
+        ),
+      ],
+    );
+  }
+
+  void _showCancelDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Recording?'),
+        content: const Text(
+          'Are you sure you want to cancel this recording? Your progress will be lost.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Continue Recording'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _cancelRecording();
+            },
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Cancel Recording'),
+          ),
+        ],
+      ),
     );
   }
 }

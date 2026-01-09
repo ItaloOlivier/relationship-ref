@@ -117,21 +117,21 @@ enum CardType {
   }
 }
 
-class Card {
+class SessionCard {
   final CardType type;
   final String reason;
   final String? quote;
   final String category;
 
-  Card({
+  SessionCard({
     required this.type,
     required this.reason,
     this.quote,
     required this.category,
   });
 
-  factory Card.fromJson(Map<String, dynamic> json) {
-    return Card(
+  factory SessionCard.fromJson(Map<String, dynamic> json) {
+    return SessionCard(
       type: CardType.fromString(json['type'] as String),
       reason: json['reason'] as String,
       quote: json['quote'] as String?,
@@ -148,12 +148,13 @@ class AnalysisResult extends Equatable {
   final int yellowCardCount;
   final int redCardCount;
   final int bankChange;
-  final List<Card> cards;
+  final List<SessionCard> cards;
   final List<String> topicTags;
   final String? whatWentWell;
   final String? tryNextTime;
   final String? repairSuggestion;
   final bool safetyFlagTriggered;
+  final SafetyResources? safetyResources;
 
   const AnalysisResult({
     required this.id,
@@ -169,6 +170,7 @@ class AnalysisResult extends Equatable {
     this.tryNextTime,
     this.repairSuggestion,
     required this.safetyFlagTriggered,
+    this.safetyResources,
   });
 
   factory AnalysisResult.fromJson(Map<String, dynamic> json) {
@@ -181,13 +183,16 @@ class AnalysisResult extends Equatable {
       redCardCount: json['redCardCount'] as int,
       bankChange: json['bankChange'] as int,
       cards: (json['cards'] as List<dynamic>)
-          .map((e) => Card.fromJson(e as Map<String, dynamic>))
+          .map((e) => SessionCard.fromJson(e as Map<String, dynamic>))
           .toList(),
       topicTags: (json['topicTags'] as List<dynamic>).cast<String>(),
       whatWentWell: json['whatWentWell'] as String?,
       tryNextTime: json['tryNextTime'] as String?,
       repairSuggestion: json['repairSuggestion'] as String?,
       safetyFlagTriggered: json['safetyFlagTriggered'] as bool? ?? false,
+      safetyResources: json['safetyResources'] != null
+          ? SafetyResources.fromJson(json['safetyResources'] as Map<String, dynamic>)
+          : null,
     );
   }
 

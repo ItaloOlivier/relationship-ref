@@ -45,3 +45,15 @@ class SessionRepository {
 final sessionRepositoryProvider = Provider<SessionRepository>((ref) {
   return SessionRepository(ref.watch(sessionsApiProvider));
 });
+
+/// Provider for fetching a single session by ID
+final sessionProvider = FutureProvider.family<Session, String>((ref, sessionId) async {
+  final repository = ref.watch(sessionRepositoryProvider);
+  return repository.getSession(sessionId);
+});
+
+/// Provider for fetching session history
+final sessionsProvider = FutureProvider.family<SessionsResponse, ({int page, int limit})>((ref, params) async {
+  final repository = ref.watch(sessionRepositoryProvider);
+  return repository.getSessions(page: params.page, limit: params.limit);
+});

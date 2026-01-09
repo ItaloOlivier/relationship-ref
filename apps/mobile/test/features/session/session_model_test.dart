@@ -93,7 +93,7 @@ void main() {
     });
   });
 
-  group('Card', () {
+  group('SessionCard', () {
     test('fromJson parses correctly', () {
       final json = {
         'type': 'RED',
@@ -102,7 +102,7 @@ void main() {
         'category': 'contempt',
       };
 
-      final card = Card.fromJson(json);
+      final card = SessionCard.fromJson(json);
 
       expect(card.type, CardType.red);
       expect(card.reason, 'contempt detected');
