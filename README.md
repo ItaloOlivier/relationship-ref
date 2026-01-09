@@ -115,3 +115,4 @@ Proprietary - All rights reserved
 ## Disclaimer
 
 This app is for coaching and wellness purposes only. It is not a substitute for professional therapy or counseling. If you or your partner are in crisis, please contact a mental health professional or crisis hotline.
+# Rebuild trigger Fri Jan  9 06:27:09 SAST 2026
