@@ -8,7 +8,7 @@ import { CouplesModule } from './couples/couples.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { AnalysisModule } from './analysis/analysis.module';
 import { GamificationModule } from './gamification/gamification.module';
-import { PersonalityModule } from './personality/personality.module';
+// Temporarily disabled: import { PersonalityModule } from './personality/personality.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -28,7 +28,7 @@ import { HealthController } from './health.controller';
     SessionsModule,
     AnalysisModule,
     GamificationModule,
-    PersonalityModule,
+    // Temporarily disabled: PersonalityModule,
   ],
   controllers: [HealthController],
 })
