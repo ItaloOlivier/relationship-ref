@@ -116,7 +116,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                   width: 100,
                   height: 100,
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -187,7 +187,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
               width: 200,
               height: 200,
               decoration: BoxDecoration(
-                color: AppColors.error.withOpacity(0.1),
+                color: AppColors.error.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
             ),
@@ -195,7 +195,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
               width: 150,
               height: 150,
               decoration: BoxDecoration(
-                color: AppColors.error.withOpacity(0.2),
+                color: AppColors.error.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
             ),
@@ -292,7 +292,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           width: 100,
           height: 100,
           decoration: BoxDecoration(
-            color: AppColors.success.withOpacity(0.1),
+            color: AppColors.success.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: const Icon(
@@ -356,7 +356,7 @@ class _ConsentCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: AppColors.primary),

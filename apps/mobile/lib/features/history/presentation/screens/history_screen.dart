@@ -41,7 +41,7 @@ class _EmptyState extends StatelessWidget {
             Icon(
               Icons.history_rounded,
               size: 80,
-              color: AppColors.textSecondary.withOpacity(0.5),
+              color: AppColors.textSecondary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 24),
             Text(
@@ -94,7 +94,7 @@ class _SessionCard extends StatelessWidget {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: _getScoreColor(session.score).withOpacity(0.1),
+                      color: _getScoreColor(session.score).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Center(
@@ -146,7 +146,7 @@ class _SessionCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: (session.bankChange >= 0
                           ? AppColors.bankPositive
-                          : AppColors.bankNegative).withOpacity(0.1),
+                          : AppColors.bankNegative).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(

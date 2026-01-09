@@ -286,7 +286,7 @@ class _BankChangeCard extends StatelessWidget {
               height: 48,
               decoration: BoxDecoration(
                 color: (isPositive ? AppColors.bankPositive : AppColors.bankNegative)
-                    .withOpacity(0.1),
+                    .withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
