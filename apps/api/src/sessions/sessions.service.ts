@@ -1,15 +1,18 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { CouplesService } from '@/couples/couples.service';
-import { SessionStatus } from '@prisma/client';
+import { SessionStatus, SessionSourceType } from '@prisma/client';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
+import { ImportWhatsAppDto } from './dto/import-whatsapp.dto';
+import { WhatsAppParserService, ParsedChat } from './services/whatsapp-parser.service';
 
 @Injectable()
 export class SessionsService {
   constructor(
     private prisma: PrismaService,
     private couplesService: CouplesService,
+    private whatsAppParser: WhatsAppParserService,
   ) {}
 
   async create(userId: string, dto: CreateSessionDto) {
@@ -113,5 +116,46 @@ export class SessionsService {
     });
 
     return { message: 'Session deleted' };
+  }
+
+  /**
+   * Import a WhatsApp chat export and create a session for analysis
+   */
+  async importWhatsAppChat(userId: string, dto: ImportWhatsAppDto): Promise<{
+    session: any;
+    parsedChat: ParsedChat;
+  }> {
+    const couple = await this.couplesService.getCoupleForUser(userId);
+
+    if (!couple) {
+      throw new BadRequestException('Must be in a couple to import a chat');
+    }
+
+    // Parse the WhatsApp chat content
+    const parsedChat = this.whatsAppParser.parseChat(dto.chatContent);
+
+    // Convert to transcript format
+    const transcript = this.whatsAppParser.formatAsTranscript(parsedChat);
+
+    // Calculate duration
+    const durationSecs = this.whatsAppParser.calculateDuration(parsedChat);
+
+    // Create session with UPLOADED status (ready for analysis, skip RECORDING/TRANSCRIBING)
+    const session = await this.prisma.session.create({
+      data: {
+        coupleId: couple.id,
+        initiatorId: userId,
+        status: SessionStatus.UPLOADED,
+        sourceType: SessionSourceType.WHATSAPP_CHAT,
+        transcript,
+        durationSecs,
+        retainAudio: false, // No audio for imported chats
+        importedFileName: dto.fileName,
+        importedMessageCount: parsedChat.messageCount,
+        chatParticipants: parsedChat.participants,
+      },
+    });
+
+    return { session, parsedChat };
   }
 }

@@ -4,6 +4,7 @@ import { SessionsService } from './sessions.service';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
+import { ImportWhatsAppDto } from './dto/import-whatsapp.dto';
 
 @ApiTags('sessions')
 @ApiBearerAuth()
@@ -63,5 +64,56 @@ export class SessionsController {
   @ApiResponse({ status: 200, description: 'Session deleted' })
   async delete(@Request() req: any, @Param('id') id: string) {
     return this.sessionsService.delete(id, req.user.id);
+  }
+
+  @Post('import-whatsapp')
+  @ApiOperation({
+    summary: 'Import a WhatsApp chat export for analysis',
+    description: 'Parse and import a WhatsApp chat export (.txt file content). The chat will be analyzed using the same coaching engine as live sessions.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'WhatsApp chat imported and session created',
+    schema: {
+      type: 'object',
+      properties: {
+        session: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            status: { type: 'string', example: 'UPLOADED' },
+            sourceType: { type: 'string', example: 'WHATSAPP_CHAT' },
+          },
+        },
+        participants: {
+          type: 'array',
+          items: { type: 'string' },
+          example: ['John', 'Sarah'],
+        },
+        messageCount: { type: 'number', example: 150 },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Invalid chat format or content' })
+  async importWhatsApp(@Request() req: any, @Body() dto: ImportWhatsAppDto) {
+    const { session, parsedChat } = await this.sessionsService.importWhatsAppChat(
+      req.user.id,
+      dto,
+    );
+
+    return {
+      session: {
+        id: session.id,
+        status: session.status,
+        sourceType: session.sourceType,
+        createdAt: session.createdAt,
+      },
+      participants: parsedChat.participants,
+      messageCount: parsedChat.messageCount,
+      dateRange: {
+        start: parsedChat.startDate,
+        end: parsedChat.endDate,
+      },
+    };
   }
 }
