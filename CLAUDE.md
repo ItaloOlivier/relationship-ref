@@ -46,7 +46,7 @@ flutter build ios     # Build iOS
 ## Phase Status
 
 - [x] Phase 0: Repository setup & CI/CD
-- [ ] Phase 1: Backend MVP
+- [x] Phase 1: Backend MVP
 - [ ] Phase 2: Flutter MVP
 - [ ] Phase 3: Gamification Layer
 - [ ] Phase 4: Polish & Hardening
