@@ -1,61 +1,8 @@
-import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { AppModule } from './app.module';
-import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
+console.log('Starting application...');
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  const logger = new Logger('Bootstrap');
-
-  // Global exception filter
-  app.useGlobalFilters(new GlobalExceptionFilter());
-
-  // Global validation pipe
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
-    }),
-  );
-
-  // CORS
-  app.enableCors({
-    origin: process.env.NODE_ENV === 'production'
-      ? [process.env.APP_URL || '']
-      : true,
-    credentials: true,
-  });
-
-  // Swagger documentation
-  const config = new DocumentBuilder()
-    .setTitle('Relationship Referee API')
-    .setDescription('API for the Relationship Referee mobile app')
-    .setVersion('0.1.0')
-    .addBearerAuth()
-    .addTag('auth', 'Authentication endpoints')
-    .addTag('users', 'User management')
-    .addTag('couples', 'Couple pairing and management')
-    .addTag('sessions', 'Coach sessions')
-    .addTag('analysis', 'Session analysis and reports')
-    .addTag('gamification', 'Quests, streaks, and rewards')
-    .build();
-
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
-
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
-  logger.log(`Application running on port ${port}`);
-  logger.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  logger.log(`Swagger docs available at /api/docs`);
-}
-
-bootstrap().catch((error) => {
-  console.error('Failed to start application:', error);
+try {
+  require('./bootstrap');
+} catch (error) {
+  console.error('Fatal error during startup:', error);
   process.exit(1);
-});
+}
