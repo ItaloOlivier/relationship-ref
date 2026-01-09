@@ -80,19 +80,30 @@ enum SessionStatus {
   FAILED
 }
 
+enum SessionSourceType {
+  AUDIO           // Live recorded conversation
+  WHATSAPP_CHAT   // Imported from WhatsApp export
+}
+
 model Session {
-  id           String        @id @default(cuid())
+  id           String            @id @default(cuid())
   coupleId     String
-  couple       Couple        @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  couple       Couple            @relation(fields: [coupleId], references: [id], onDelete: Cascade)
   initiatorId  String
-  initiator    User          @relation(fields: [initiatorId], references: [id])
-  status       SessionStatus @default(RECORDING)
+  initiator    User              @relation(fields: [initiatorId], references: [id])
+  status       SessionStatus     @default(RECORDING)
+  sourceType   SessionSourceType @default(AUDIO)
   durationSecs Int?
-  audioUrl     String?       // Only if user opted to retain audio
-  retainAudio  Boolean       @default(false)
-  transcript   String?       @db.Text
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  audioUrl     String?           // Only if user opted to retain audio
+  retainAudio  Boolean           @default(false)
+  transcript   String?           @db.Text
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  // WhatsApp import specific fields
+  importedFileName    String?    // Original filename of imported chat
+  importedMessageCount Int?      // Number of messages in imported chat
+  chatParticipants    String[]   // Names extracted from chat export
 
   // Relations
   analysisResult AnalysisResult?
