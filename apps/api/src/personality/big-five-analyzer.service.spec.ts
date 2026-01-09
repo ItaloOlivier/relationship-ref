@@ -1,26 +1,33 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
 import { BigFiveAnalyzerService } from './big-five-analyzer.service';
+import { AiNarrativeService } from './ai-narrative.service';
 import { LinguisticFeatures } from './linguistic-analysis.service';
 import { AttachmentStyle, CommunicationStyle } from '@prisma/client';
 
 describe('BigFiveAnalyzerService', () => {
   let service: BigFiveAnalyzerService;
 
+  const mockAiNarrativeService = {
+    generatePersonalityNarratives: jest.fn().mockResolvedValue({
+      strengthsNarrative: 'You show a natural ability to connect with your partner and prioritize harmony in your relationship.',
+      growthAreasNarrative: 'Managing stress and anxiety could help you communicate more effectively during conflicts.',
+      communicationNarrative: 'You tend to prioritize harmony and may sometimes put your partner\'s needs before your own.',
+    }),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BigFiveAnalyzerService,
         {
-          provide: ConfigService,
-          useValue: {
-            get: jest.fn().mockReturnValue(undefined), // No OpenAI key for tests
-          },
+          provide: AiNarrativeService,
+          useValue: mockAiNarrativeService,
         },
       ],
     }).compile();
 
     service = module.get<BigFiveAnalyzerService>(BigFiveAnalyzerService);
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {

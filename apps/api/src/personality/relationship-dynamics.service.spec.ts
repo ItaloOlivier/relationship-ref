@@ -1,23 +1,28 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
 import {
   RelationshipDynamicsService,
   ParticipantFeatures,
 } from './relationship-dynamics.service';
+import { AiNarrativeService } from './ai-narrative.service';
 import { LinguisticFeatures } from './linguistic-analysis.service';
 
 describe('RelationshipDynamicsService', () => {
   let service: RelationshipDynamicsService;
+
+  const mockAiNarrativeService = {
+    generateCoupleNarrative: jest.fn().mockResolvedValue({
+      dynamicNarrative: 'John and Sarah share conversation time fairly equally, indicating mutual engagement. Your positive-to-negative interaction ratio is healthy.',
+      coachingFocus: 'Continue practicing open, honest communication and expressing appreciation for each other.',
+    }),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RelationshipDynamicsService,
         {
-          provide: ConfigService,
-          useValue: {
-            get: jest.fn().mockReturnValue(undefined),
-          },
+          provide: AiNarrativeService,
+          useValue: mockAiNarrativeService,
         },
       ],
     }).compile();
@@ -25,6 +30,7 @@ describe('RelationshipDynamicsService', () => {
     service = module.get<RelationshipDynamicsService>(
       RelationshipDynamicsService,
     );
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
