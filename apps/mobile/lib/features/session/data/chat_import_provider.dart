@@ -194,10 +194,17 @@ class ChatImportNotifier extends StateNotifier<ChatImportStatus> {
       state = state.copyWith(state: ChatImportState.complete);
     } catch (e) {
       String errorMessage = 'Failed to import chat';
-      if (e.toString().contains('participants')) {
+      final errorStr = e.toString();
+
+      if (errorStr.contains('participant')) {
         errorMessage = 'Could not find 2 participants in the chat. Make sure this is a valid WhatsApp export between you and your partner.';
-      } else if (e.toString().contains('couple')) {
+      } else if (errorStr.contains('couple')) {
         errorMessage = 'You must be in a couple to import chats. Connect with your partner first.';
+      } else if (errorStr.contains('parse')) {
+        errorMessage = 'Could not parse the chat file. Make sure this is a valid WhatsApp export (.txt file).';
+      } else {
+        // Show actual error for debugging
+        errorMessage = 'Import failed: $errorStr';
       }
 
       state = state.copyWith(
