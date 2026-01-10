@@ -116,7 +116,6 @@ export class SessionsController {
       },
     };
   }
-}
 
   @Post(':id/audio')
   @ApiOperation({ summary: 'Upload audio file for session' })
@@ -132,3 +131,4 @@ export class SessionsController {
       status: 'UPLOADED',
     });
   }
+}
