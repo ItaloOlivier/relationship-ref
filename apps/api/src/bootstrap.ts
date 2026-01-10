@@ -24,11 +24,17 @@ async function bootstrap() {
     }),
   );
 
-  // CORS
+  // CORS - allow dashboard and web viewer
+  const allowedOrigins = process.env.NODE_ENV === 'production'
+    ? [
+        'https://web-mocha-kappa-28.vercel.app',
+        'https://relationship-ref-vercel.app',
+        process.env.DASHBOARD_URL || '',
+      ].filter(Boolean)
+    : ['http://localhost:3001', 'http://localhost:3000', true];
+
   app.enableCors({
-    origin: process.env.NODE_ENV === 'production'
-      ? [process.env.APP_URL || '']
-      : true,
+    origin: allowedOrigins,
     credentials: true,
   });
 
