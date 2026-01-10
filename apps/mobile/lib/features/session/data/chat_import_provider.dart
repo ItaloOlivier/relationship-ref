@@ -177,10 +177,11 @@ class ChatImportNotifier extends StateNotifier<ChatImportStatus> {
         fileName: state.fileName,
       );
 
-      final sessionId = response['session']['id'] as String;
-      final participantsList = response['participants'] as List;
-      final participants = participantsList.map((p) => p.toString()).toList();
-      final messageCount = response['messageCount'] as int;
+      final sessionData = response['session'] as Map<String, dynamic>;
+      final sessionId = sessionData['id'] as String;
+      final participantsList = response['participants'] as List<dynamic>;
+      final List<String> participants = participantsList.map<String>((p) => p.toString()).toList();
+      final messageCount = (response['messageCount'] as num).toInt();
 
       state = state.copyWith(
         state: ChatImportState.analyzing,
