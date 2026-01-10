@@ -13,6 +13,9 @@ import '../../features/insights/presentation/screens/insights_screen.dart';
 import '../../features/personality/presentation/screens/personality_profile_screen.dart';
 import '../../features/personality/presentation/screens/couple_comparison_screen.dart';
 import '../../features/personality/presentation/screens/relationship_coaching_screen.dart';
+import '../../features/relationship/presentation/screens/relationship_list_screen.dart';
+import '../../features/relationship/presentation/screens/relationship_detail_screen.dart';
+import '../../features/relationship/presentation/screens/participant_profile_screen.dart';
 import '../auth/auth_provider.dart';
 import '../navigation/app_navigation_shell.dart';
 
@@ -138,11 +141,49 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       ),
                     ],
                   ),
+                  // Relationship directory routes (nested under settings)
+                  GoRoute(
+                    path: 'relationships',
+                    name: 'relationships',
+                    builder: (context, state) => const RelationshipListScreen(),
+                  ),
                 ],
               ),
             ],
           ),
         ],
+      ),
+      // Standalone relationship routes (outside main shell)
+      GoRoute(
+        path: '/relationships/:relationshipId',
+        name: 'relationship-detail',
+        builder: (context, state) {
+          final relationshipId = state.pathParameters['relationshipId']!;
+          return RelationshipDetailScreen(relationshipId: relationshipId);
+        },
+        routes: [
+          GoRoute(
+            path: 'participants/:userId',
+            name: 'participant-profile',
+            builder: (context, state) {
+              final relationshipId = state.pathParameters['relationshipId']!;
+              final userId = state.pathParameters['userId']!;
+              return ParticipantProfileScreen(
+                userId: userId,
+                relationshipId: relationshipId,
+              );
+            },
+          ),
+        ],
+      ),
+      // Alternate route for session reports (standalone)
+      GoRoute(
+        path: '/sessions/:sessionId/report',
+        name: 'session-report',
+        builder: (context, state) {
+          final sessionId = state.pathParameters['sessionId']!;
+          return ReportScreen(sessionId: sessionId);
+        },
       ),
     ],
   );
