@@ -266,12 +266,42 @@ See [TestFlight Deployment Guide](docs/testflight-deployment.md) for complete iO
   - **Tests**: Added 10 comprehensive ratio-based tests, all 296 tests passing
   - **Applied to**: Both overall session scores and individual speaker scores
   - Commit: 748c14d
-- [ ] **Phase 8: Type-Specific Coaching**
+- [x] **Phase 8: Multi-Relationship Switcher & Filtering** (Completed 2026-01-10)
+  - **Phase 8.1: Relationship Switcher UI** (commit bfa7c8c)
+    - Created `RelationshipSwitcher` widget with dropdown picker
+    - Shows relationship type icon, name, and member count
+    - Auto-selects first relationship if none selected
+    - Bottom sheet picker for switching between relationships
+    - State management via `selectedRelationshipIdProvider`
+  - **Phase 8.2a: Backend API Filtering** (commit 12506a4)
+    - `GamificationController`: Added optional `relationshipId` query param to `/dashboard` and `/quests`
+    - `SessionsController`: Added optional `relationshipId` query param to `GET /sessions`
+    - `GamificationService.getDashboard()`: Filters by specific relationship when provided
+    - `QuestsService.getActiveQuests()`: Supports relationshipId filtering
+    - `SessionsService.findAllForUser()`: Filters sessions by relationship
+  - **Phase 8.2b: Flutter Data Integration** (commit 5dbc294)
+    - Updated `GamificationApi` and `SessionsApi` to accept optional `relationshipId`
+    - Changed `dashboardProvider` and `questsProvider` to family providers
+    - Home screen widgets watch `selectedRelationshipIdProvider`
+    - Dashboard metrics (bank, streaks, quests) now filter by selected relationship
+  - **Phase 8.3: Session Creation with Relationship** (commit b67c820)
+    - `RecordingNotifier.stopRecording()` accepts optional `relationshipId`
+    - `SessionScreen` passes selected relationship ID when stopping recording
+    - New sessions automatically associated with currently selected relationship
+    - Falls back to legacy couple or solo session if no relationship selected
+  - **Key Files:**
+    - [RelationshipSwitcher](apps/mobile/lib/features/relationship/presentation/widgets/relationship_switcher.dart)
+    - [selectedRelationshipProvider](apps/mobile/lib/features/relationship/presentation/providers/selected_relationship_provider.dart)
+    - [HomeScreen](apps/mobile/lib/features/home/presentation/screens/home_screen.dart)
+    - [GamificationController](apps/api/src/gamification/gamification.controller.ts)
+    - [SessionsController](apps/api/src/sessions/sessions.controller.ts)
+  - **Result**: Users can switch between romantic, business, family, and friend relationships and see separate metrics for each!
+- [ ] **Phase 9: Type-Specific Coaching**
   - Business relationship coaching (conflict resolution, negotiation)
   - Friendship coaching (boundary setting, support patterns)
   - Family coaching (generational communication, roles)
   - Professional coaching (mentorship feedback, collaboration)
-- [ ] **Phase 9: Relationship Lifecycle Management**
+- [ ] **Phase 10: Relationship Lifecycle Management**
   - Pause/resume relationships
   - Archive old relationships
   - Relationship health trends over time
