@@ -7,17 +7,22 @@ export interface Card {
   reason: string;
   quote?: string;
   category: string;
+  speaker?: string;      // Name of person who said this (parsed from transcript)
+  userId?: string;       // User ID if speaker name was mapped to a known user
+  timestamp?: Date;      // When in conversation (optional, for future use)
 }
 
 export interface HorsemanDetection {
   type: 'criticism' | 'contempt' | 'defensiveness' | 'stonewalling';
   quote?: string;
   severity: 'mild' | 'moderate' | 'severe';
+  speaker?: string;      // Who used this horseman
 }
 
 export interface RepairAttempt {
   quote: string;
   type: string;
+  speaker?: string;      // Who made the repair attempt
 }
 
 export interface ScoringResult {
@@ -154,6 +159,55 @@ const SAFETY_PATTERNS = [
 export class ScoringService {
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * Detect the speaker who said a given quote in the transcript.
+   * Transcript format is typically: "SpeakerName: message text"
+   *
+   * @param quote - The exact quote to find
+   * @param transcript - Full conversation transcript
+   * @returns Speaker name or null if not found
+   */
+  private detectSpeaker(quote: string, transcript: string): string | null {
+    if (!quote || !transcript) {
+      return null;
+    }
+
+    // Split transcript into lines
+    const lines = transcript.split('\n');
+    const normalizedQuote = quote.toLowerCase().trim();
+
+    // Try to find the line containing this exact quote
+    // Prioritize exact substring matches over partial matches
+    let bestMatch: { speaker: string; exactness: number } | null = null;
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      const lowerLine = trimmedLine.toLowerCase();
+
+      // Check if this line contains the quote
+      if (lowerLine.includes(normalizedQuote)) {
+        // Match pattern: "SpeakerName: quote text"
+        const match = trimmedLine.match(/^([^:]+):\s*(.+)$/);
+        if (match) {
+          const speaker = match[1].trim();
+          const message = match[2].trim().toLowerCase();
+
+          // Validate it's not a system message or timestamp
+          if (speaker && !speaker.match(/^\d/) && speaker.length < 50) {
+            // Calculate exactness: higher score if quote is closer to the full message
+            const exactness = normalizedQuote.length / message.length;
+
+            if (!bestMatch || exactness > bestMatch.exactness) {
+              bestMatch = { speaker, exactness };
+            }
+          }
+        }
+      }
+    }
+
+    return bestMatch ? bestMatch.speaker : null;
+  }
+
   async getScoreConfig(): Promise<Record<string, { points: number; cardType?: CardType }>> {
     const configs = await this.prisma.scoringConfig.findMany({
       where: { isActive: true },
@@ -200,12 +254,17 @@ export class ScoringService {
             for (const match of matches) {
               bankChange += scoreConfig.points;
 
+              // Detect speaker for this quote
+              const speaker = this.detectSpeaker(match, transcript) ?? undefined;
+
               if (scoreConfig.cardType) {
                 cards.push({
                   type: scoreConfig.cardType,
                   reason: category.replace(/_/g, ' '),
                   quote: match,
                   category,
+                  speaker,
+                  // userId will be populated later in analysis.service.ts using relationship members
                 });
               }
 
@@ -216,6 +275,7 @@ export class ScoringService {
                   quote: match,
                   severity: Math.abs(scoreConfig.points) >= 6 ? 'severe' :
                            Math.abs(scoreConfig.points) >= 4 ? 'moderate' : 'mild',
+                  speaker,
                 });
               }
 
@@ -224,6 +284,7 @@ export class ScoringService {
                 repairAttempts.push({
                   quote: match,
                   type: 'verbal',
+                  speaker,
                 });
               }
             }

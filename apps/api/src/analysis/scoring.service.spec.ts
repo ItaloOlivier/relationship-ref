@@ -173,4 +173,101 @@ describe('ScoringService', () => {
       expect(counts.red).toBe(0);
     });
   });
+
+  describe('Speaker Attribution', () => {
+    it('should detect speaker from "SpeakerName: message" format', async () => {
+      const transcript = 'John: Thank you for listening to me.';
+      const result = await service.analyzeTranscript(transcript);
+
+      const appreciationCard = result.cards.find(c => c.category === 'appreciation');
+      expect(appreciationCard).toBeDefined();
+      expect(appreciationCard?.speaker).toBe('John');
+    });
+
+    it('should detect speaker from WhatsApp format', async () => {
+      const transcript = 'Sarah: I appreciate your effort.\nJohn: You always say that.';
+      const result = await service.analyzeTranscript(transcript);
+
+      const appreciationCard = result.cards.find(c => c.category === 'appreciation');
+      const alwaysCard = result.cards.find(c => c.category === 'always_never');
+
+      expect(appreciationCard?.speaker).toBe('Sarah');
+      expect(alwaysCard?.speaker).toBe('John');
+    });
+
+    it('should handle multiple speakers saying same thing', async () => {
+      const transcript = 'Alice: I appreciate you.\nBob: Thank you so much.';
+      const result = await service.analyzeTranscript(transcript);
+
+      const appreciationCards = result.cards.filter(c => c.category === 'appreciation');
+      expect(appreciationCards.length).toBeGreaterThanOrEqual(2);
+
+      const speakers = appreciationCards.map(c => c.speaker);
+      expect(speakers).toContain('Alice');
+      expect(speakers).toContain('Bob');
+    });
+
+    it('should handle quotes without speaker (unknown speaker)', async () => {
+      const transcript = 'Thank you for everything.';
+      const result = await service.analyzeTranscript(transcript);
+
+      const card = result.cards.find(c => c.category === 'appreciation');
+      expect(card).toBeDefined();
+      expect(card?.speaker).toBeUndefined();
+    });
+
+    it('should attribute horsemen to correct speaker', async () => {
+      const transcript = "Mike: You're pathetic.\nLisa: I understand your frustration.";
+      const result = await service.analyzeTranscript(transcript);
+
+      const contemptHorseman = result.horsemenDetected.find(h => h.type === 'contempt');
+      expect(contemptHorseman).toBeDefined();
+      expect(contemptHorseman?.speaker).toBe('Mike');
+    });
+
+    it('should attribute repair attempts to correct speaker', async () => {
+      const transcript = "Sam: You never listen!\nAlex: I'm sorry, let's start over.";
+      const result = await service.analyzeTranscript(transcript);
+
+      const repairAttempt = result.repairAttempts.find(r => r.quote.toLowerCase().includes("i'm sorry"));
+      expect(repairAttempt).toBeDefined();
+      expect(repairAttempt?.speaker).toBe('Alex');
+    });
+
+    it('should handle speaker names with spaces', async () => {
+      const transcript = 'Mary Smith: I appreciate your help.';
+      const result = await service.analyzeTranscript(transcript);
+
+      const card = result.cards.find(c => c.category === 'appreciation');
+      expect(card?.speaker).toBe('Mary Smith');
+    });
+
+    it('should not detect timestamps as speakers', async () => {
+      const transcript = '14:32: Thank you for your time.';
+      const result = await service.analyzeTranscript(transcript);
+
+      const card = result.cards.find(c => c.category === 'appreciation');
+      expect(card?.speaker).toBeUndefined(); // Timestamp shouldn't be treated as speaker
+    });
+
+    it('should handle case-insensitive quote matching', async () => {
+      const transcript = 'JOHN: THANK YOU SO MUCH';
+      const result = await service.analyzeTranscript(transcript);
+
+      const card = result.cards.find(c => c.category === 'appreciation');
+      expect(card).toBeDefined();
+      expect(card?.speaker).toBe('JOHN');
+    });
+
+    it('should attribute multiple cards from same speaker', async () => {
+      const transcript = 'Emily: Thank you. I really appreciate it. Can you tell me more?';
+      const result = await service.analyzeTranscript(transcript);
+
+      const emilyCards = result.cards.filter(c => c.speaker === 'Emily');
+      expect(emilyCards.length).toBeGreaterThanOrEqual(2);
+
+      const categories = emilyCards.map(c => c.category);
+      expect(categories).toContain('appreciation');
+    });
+  });
 });

@@ -110,6 +110,13 @@ See [TestFlight Deployment Guide](docs/testflight-deployment.md) for complete iO
     - Schema supports speaker-attributed cards and per-person score breakdowns
     - Backward compatible (nullable field, existing data unaffected)
     - All 249 existing tests pass
+  - [x] Phase 6.2: Speaker Attribution in Scoring Service (2026-01-10)
+    - Updated Card, HorsemanDetection, RepairAttempt interfaces with speaker field
+    - Implemented detectSpeaker() helper with best-match algorithm
+    - Speaker detection handles: WhatsApp format, multi-speaker, edge cases
+    - All cards, horsemen, and repair attempts now track speaker
+    - Added 10 comprehensive tests for speaker attribution
+    - All 259 tests pass (100% backward compatible)
   - [ ] Relationship list/switcher in home screen
   - [ ] Individual scorecards per participant
   - [ ] Relationship directory (view all friends/business/partners)
