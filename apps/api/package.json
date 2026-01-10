@@ -4,7 +4,7 @@
   "description": "Relationship Referee Backend API",
   "main": "dist/main.js",
   "scripts": {
-    "build": "prisma generate && which nest && nest --version && nest build && ls -la dist/",
+    "build": "prisma generate && tsc -p tsconfig.build.json && ls -la dist/",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "dev": "nest start --watch",
