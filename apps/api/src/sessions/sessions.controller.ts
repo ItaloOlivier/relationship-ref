@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request, UseInterceptors, UploadedFiles, BadRequestException } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiParam, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { SessionsService } from './sessions.service';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { CreateSessionDto } from './dto/create-session.dto';
@@ -67,9 +68,20 @@ export class SessionsController {
   }
 
   @Post('import-whatsapp')
+  @UseInterceptors(FilesInterceptor('voiceNotes', 20, {
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB per file
+    fileFilter: (req, file, cb) => {
+      if (/\.(opus|m4a|mp3)$/i.test(file.originalname)) {
+        cb(null, true);
+      } else {
+        cb(new BadRequestException('Only audio files (.opus, .m4a, .mp3) are allowed'), false);
+      }
+    },
+  }))
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Import a WhatsApp chat export for analysis',
-    description: 'Parse and import a WhatsApp chat export (.txt file content). The chat will be analyzed using the same coaching engine as live sessions.',
+    description: 'Parse and import a WhatsApp chat export (.txt file content). Optionally include voice note files (.opus, .m4a, .mp3) for transcription. The chat will be analyzed using the same coaching engine as live sessions.',
   })
   @ApiResponse({
     status: 201,
@@ -91,14 +103,28 @@ export class SessionsController {
           example: ['John', 'Sarah'],
         },
         messageCount: { type: 'number', example: 150 },
+        voiceNoteStats: {
+          type: 'object',
+          properties: {
+            total: { type: 'number', example: 5 },
+            matched: { type: 'number', example: 4 },
+            unmatched: { type: 'number', example: 1 },
+            warnings: { type: 'array', items: { type: 'string' } },
+          },
+        },
       },
     },
   })
   @ApiResponse({ status: 400, description: 'Invalid chat format or content' })
-  async importWhatsApp(@Request() req: any, @Body() dto: ImportWhatsAppDto) {
-    const { session, parsedChat } = await this.sessionsService.importWhatsAppChat(
+  async importWhatsApp(
+    @Request() req: any,
+    @Body() dto: ImportWhatsAppDto,
+    @UploadedFiles() voiceNotes?: Express.Multer.File[]
+  ) {
+    const { session, parsedChat, voiceNoteStats } = await this.sessionsService.importWhatsAppChat(
       req.user.id,
       dto,
+      voiceNotes,
     );
 
     return {
@@ -114,6 +140,7 @@ export class SessionsController {
         start: parsedChat.startDate,
         end: parsedChat.endDate,
       },
+      ...(voiceNoteStats && { voiceNoteStats }),
     };
   }
 

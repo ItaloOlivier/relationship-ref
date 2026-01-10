@@ -195,6 +195,11 @@ model Session {
   importedMessageCount Int? // Number of messages in imported chat
   chatParticipants     String[] // Names extracted from chat export
 
+  // WhatsApp voice notes specific fields
+  voiceNoteCount      Int?     // Number of voice notes transcribed
+  voiceNoteFilenames  String[] // Original PTT filenames for audit trail
+  voiceNoteDurations  Int[]    // Duration in seconds (parallel to filenames)
+
   // WhatsApp sharing fields
   shareToken       String?   @unique // Public share token
   shareTokenExpiry DateTime? // When share link expires

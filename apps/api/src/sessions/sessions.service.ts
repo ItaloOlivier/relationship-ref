@@ -1,20 +1,26 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { CouplesService } from '@/couples/couples.service';
 import { RelationshipsService } from '@/relationships/relationships.service';
+import { TranscriptionService } from '@/analysis/transcription.service';
 import { SessionStatus, SessionSourceType } from '@prisma/client';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
 import { ImportWhatsAppDto } from './dto/import-whatsapp.dto';
 import { WhatsAppParserService, ParsedChat } from './services/whatsapp-parser.service';
+import { VoiceNoteMatchingService } from './services/voice-note-matching.service';
 
 @Injectable()
 export class SessionsService {
+  private readonly logger = new Logger(SessionsService.name);
+
   constructor(
     private prisma: PrismaService,
     private couplesService: CouplesService,
     private relationshipsService: RelationshipsService,
     private whatsAppParser: WhatsAppParserService,
+    private voiceNoteMatchingService: VoiceNoteMatchingService,
+    private transcriptionService: TranscriptionService,
   ) {}
 
   async create(userId: string, dto: CreateSessionDto) {
@@ -191,9 +197,19 @@ export class SessionsService {
   /**
    * Import a WhatsApp chat export and create a session for analysis
    */
-  async importWhatsAppChat(userId: string, dto: ImportWhatsAppDto): Promise<{
+  async importWhatsAppChat(
+    userId: string,
+    dto: ImportWhatsAppDto,
+    voiceNotes?: Express.Multer.File[]
+  ): Promise<{
     session: any;
     parsedChat: ParsedChat;
+    voiceNoteStats?: {
+      total: number;
+      matched: number;
+      unmatched: number;
+      warnings: string[];
+    };
   }> {
     let relationshipId: string | null = null;
     let coupleId: string | null = null;
@@ -220,7 +236,127 @@ export class SessionsService {
     // Parse the WhatsApp chat content
     const parsedChat = this.whatsAppParser.parseChat(dto.chatContent);
 
-    // Convert to transcript format
+    // Voice note processing (if files provided)
+    let voiceNoteStats: {
+      total: number;
+      matched: number;
+      unmatched: number;
+      warnings: string[];
+    } | undefined;
+
+    const voiceNoteFilenames: string[] = [];
+    const voiceNoteDurations: number[] = [];
+
+    if (voiceNotes && voiceNotes.length > 0) {
+      this.logger.log(`Processing ${voiceNotes.length} voice note files`);
+
+      // Match voice notes to messages
+      const matches = this.voiceNoteMatchingService.matchVoiceNotes(
+        parsedChat.messages,
+        voiceNotes
+      );
+
+      this.logger.log(`Matched ${matches.size} voice notes to messages`);
+
+      // Transcribe matched voice notes in parallel
+      const transcriptionPromises = Array.from(matches.entries()).map(
+        async ([msgIdx, match]) => {
+          try {
+            const transcript = await this.transcriptionService.transcribeFromBuffer(
+              match.file.buffer,
+              match.file.originalname
+            );
+
+            return {
+              msgIdx,
+              transcript: transcript.trim(),
+              filename: match.file.originalname,
+              duration: null, // Duration not available from file buffer
+              success: true,
+            };
+          } catch (error) {
+            this.logger.error(
+              `Transcription failed for ${match.file.originalname}: ${error.message}`,
+              error.stack
+            );
+            return {
+              msgIdx,
+              transcript: '[Voice message - transcription failed]',
+              filename: match.file.originalname,
+              duration: null,
+              success: false,
+            };
+          }
+        }
+      );
+
+      const transcriptions = await Promise.all(transcriptionPromises);
+
+      // Augment messages with transcripts
+      transcriptions.forEach(({ msgIdx, transcript }) => {
+        const msg = parsedChat.messages[msgIdx];
+        msg.content = `[Voice Message] ${transcript}`;
+      });
+
+      // Collect filenames and durations for storage
+      transcriptions.forEach(({ filename, duration }) => {
+        voiceNoteFilenames.push(filename);
+        if (duration !== null) {
+          voiceNoteDurations.push(duration);
+        }
+      });
+
+      // Handle unmatched voice notes
+      const unmatchedFiles = this.voiceNoteMatchingService.getUnmatchedFiles(
+        voiceNotes,
+        matches
+      );
+
+      const warnings: string[] = [];
+
+      if (unmatchedFiles.length > 0) {
+        this.logger.warn(
+          `${unmatchedFiles.length} voice note(s) could not be matched to messages: ${unmatchedFiles.map(f => f.originalname).join(', ')}`
+        );
+        warnings.push(
+          `${unmatchedFiles.length} voice note(s) could not be matched to specific messages and were appended to the transcript`
+        );
+
+        // Transcribe unmatched files and append to transcript
+        for (const file of unmatchedFiles) {
+          try {
+            const transcript = await this.transcriptionService.transcribeFromBuffer(
+              file.buffer,
+              file.originalname
+            );
+
+            // Append as a system message at the end
+            parsedChat.messages.push({
+              timestamp: new Date(),
+              sender: 'System',
+              content: `[Unmatched Voice Message from ${file.originalname}] ${transcript.trim()}`,
+              isSystemMessage: true,
+            });
+
+            voiceNoteFilenames.push(file.originalname);
+          } catch (error) {
+            this.logger.error(
+              `Failed to transcribe unmatched file ${file.originalname}: ${error.message}`
+            );
+            warnings.push(`Failed to transcribe ${file.originalname}`);
+          }
+        }
+      }
+
+      voiceNoteStats = {
+        total: voiceNotes.length,
+        matched: matches.size,
+        unmatched: unmatchedFiles.length,
+        warnings,
+      };
+    }
+
+    // Convert to transcript format (with augmented voice messages)
     const transcript = this.whatsAppParser.formatAsTranscript(parsedChat);
 
     // Calculate duration
@@ -240,9 +376,12 @@ export class SessionsService {
         importedFileName: dto.fileName,
         importedMessageCount: parsedChat.messageCount,
         chatParticipants: parsedChat.participants,
+        voiceNoteCount: voiceNotes?.length || 0,
+        voiceNoteFilenames,
+        voiceNoteDurations: voiceNoteDurations.length > 0 ? voiceNoteDurations : undefined,
       },
     });
 
-    return { session, parsedChat };
+    return { session, parsedChat, voiceNoteStats };
   }
 }

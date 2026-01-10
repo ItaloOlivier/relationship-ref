@@ -9,6 +9,6 @@ import { SessionsModule } from '@/sessions/sessions.module';
   imports: [SessionsModule],
   controllers: [AnalysisController],
   providers: [AnalysisService, TranscriptionService, ScoringService],
-  exports: [AnalysisService],
+  exports: [AnalysisService, TranscriptionService],
 })
 export class AnalysisModule {}
