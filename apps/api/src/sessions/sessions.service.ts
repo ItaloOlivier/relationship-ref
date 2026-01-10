@@ -39,12 +39,12 @@ export class SessionsService {
       }
       relationshipId = dto.relationshipId;
     } else {
-      // Fallback: Try to get active romantic couple
+      // Try to get active romantic couple (optional - solo sessions allowed)
       const couple = await this.couplesService.getCoupleForUser(userId);
-      if (!couple) {
-        throw new BadRequestException('Must be in a couple or relationship to create a session');
+      if (couple) {
+        coupleId = couple.id;
       }
-      coupleId = couple.id;
+      // If no couple, session will be solo (linked only to initiator)
     }
 
     const session = await this.prisma.session.create({
@@ -82,15 +82,22 @@ export class SessionsService {
       throw new NotFoundException('Session not found');
     }
 
-    // Check user has access (either via couple or relationship)
+    // Check user has access (via couple, relationship, or as initiator for solo sessions)
     let hasAccess = false;
 
-    if (session.couple) {
-      hasAccess = session.couple.partner1Id === userId || session.couple.partner2Id === userId;
+    // Solo session - user is the initiator
+    if (session.initiatorId === userId) {
+      hasAccess = true;
     }
 
+    // Access via couple
+    if (session.couple) {
+      hasAccess = hasAccess || session.couple.partner1Id === userId || session.couple.partner2Id === userId;
+    }
+
+    // Access via relationship
     if (session.relationship) {
-      hasAccess = session.relationship.members.some(member => member.userId === userId);
+      hasAccess = hasAccess || session.relationship.members.some(member => member.userId === userId);
     }
 
     if (!hasAccess) {
@@ -109,9 +116,12 @@ export class SessionsService {
     const couple = await this.couplesService.getCoupleForUser(userId);
     const coupleId = couple?.id;
 
-    // Build query to find sessions from either relationships or couple
+    // Build query to find sessions from relationships, couple, OR solo sessions (initiator)
     const whereClause: any = {
-      OR: []
+      OR: [
+        // Solo sessions - user is the initiator and no couple/relationship linked
+        { initiatorId: userId },
+      ]
     };
 
     if (relationshipIds.length > 0) {
@@ -120,11 +130,6 @@ export class SessionsService {
 
     if (coupleId) {
       whereClause.OR.push({ coupleId });
-    }
-
-    // If user has no relationships or couples, return empty
-    if (whereClause.OR.length === 0) {
-      return { sessions: [], total: 0, page, limit };
     }
 
     const [sessions, total] = await Promise.all([
@@ -226,12 +231,13 @@ export class SessionsService {
       }
       relationshipId = dto.relationshipId;
     } else {
-      // Fallback: Try to get active romantic couple
+      // Try to get active romantic couple (optional - solo imports allowed)
       const couple = await this.couplesService.getCoupleForUser(userId);
-      if (!couple) {
-        throw new BadRequestException('Must be in a couple or relationship to import a chat');
+      if (couple) {
+        coupleId = couple.id;
       }
-      coupleId = couple.id;
+      // If no couple, session will be solo (linked only to initiator)
+      // User can link to a relationship later
     }
 
     // Parse the WhatsApp chat content
