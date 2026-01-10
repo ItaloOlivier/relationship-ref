@@ -103,7 +103,7 @@ See [TestFlight Deployment Guide](docs/testflight-deployment.md) for complete iO
     - [InsightsController](apps/api/src/insights/insights.controller.ts)
     - [InsightsScreen](apps/mobile/lib/features/insights/presentation/screens/insights_screen.dart)
     - [QAChatSection](apps/mobile/lib/features/session/presentation/widgets/qa_chat_section.dart)
-- [ ] **Phase 6: Multi-Relationship UI & Features** (IN PROGRESS)
+- [ ] **Phase 6: Multi-Relationship UI & Features** (IN PROGRESS - 2026-01-10)
   - [x] Phase 6.1: Database Foundation (2026-01-10)
     - Added `individualScores` JSON field to AnalysisResult model
     - Migration: `20260110_add_individual_scores_field`
@@ -156,9 +156,40 @@ See [TestFlight Deployment Guide](docs/testflight-deployment.md) for complete iO
     - Backward compatible with existing API responses
     - 63 Flutter tests passing (8 pre-existing failures unrelated)
     - Commit: 057d7e3
+  - [x] Phase 6.7: Flutter Individual Scorecard UI Widget (2026-01-10)
+    - Created IndividualScorecardSection widget displaying per-speaker metrics in session reports
+    - Components: _IndividualScorecardCard, _PersonalScoreGauge, _CardCountBadge, _BankContributionRow, _RepairAttemptsRow, _HorsemenSection
+    - Visual design: personal score gauge (green>80, yellow 60-80, red<60), card count badges, emotional bank +/-, repair attempts, Four Horsemen chips
+    - Integrated into report screen after bank change card
+    - Only displays when individualScores array is not empty
+    - Commit: 96ccc88
+  - [x] Phase 6.8: Flutter Relationship Models and Repository (2026-01-10)
+    - Created relationship domain models: Relationship, RelationshipMember, UserInfo, RelationshipHealth
+    - RelationshipType enum: 11 types (romantic, friendship, family, business, etc.)
+    - RelationshipStatus enum: lifecycle states (ACTIVE, PAUSED, ENDED_MUTUAL, ENDED_UNILATERAL, ARCHIVED)
+    - MemberRole enum: 9 roles (PARTNER, PARENT, CHILD, FRIEND, COLLEAGUE, etc.)
+    - Created RelationshipRepository with full API integration via RelationshipsApi class
+    - Riverpod providers: relationshipsProvider, relationshipProvider.family, relationshipHealthProvider.family, relationshipSessionsProvider.family
+    - Commit: e287276
+  - [x] Phase 6.9: Flutter Relationship List Screen (2026-01-10)
+    - Created RelationshipListScreen showing all user relationships grouped by type
+    - Components: _RelationshipTypeSection, _RelationshipCard, _StatusBadge
+    - Type-specific icons and labels for each category (Romantic, Family, Professional, etc.)
+    - Card displays: relationship name, status badge, active member chips, session count, invite code
+    - Empty state with Create/Join buttons
+    - Navigation: tap card to view detail screen (/relationships/{id})
+    - Commit: 4370203
+  - [x] Phase 6.10: Flutter Relationship Detail Screen (2026-01-10)
+    - Created RelationshipDetailScreen showing comprehensive relationship info
+    - Health Card: health score with color coding, trend indicator, green card ratio gauge, stats
+    - Members Section: lists all active members with avatars, role badges, user names/emails
+    - Sessions Section: shows 5 most recent sessions with score, date/time, card count chips
+    - Invite Code Card: monospace code display with copy button (for active relationships only)
+    - Options Menu: Pause and Leave actions (TODO)
+    - Commit: 8b925cb
+  - [ ] Phase 6.11: Flutter Participant Profile Screen (IN PROGRESS)
+  - [ ] Phase 6.12: Navigation and Routing Integration
   - [ ] Relationship list/switcher in home screen (deferred)
-  - [ ] Individual scorecards per participant
-  - [ ] Relationship directory (view all friends/business/partners)
   - [ ] Cross-relationship personality comparison
   - [ ] Type-specific UI themes (romantic vs business vs friendship)
 - [ ] **Phase 7: WhatsApp Report Sharing**
