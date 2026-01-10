@@ -40,6 +40,16 @@ class UsersApi {
     final response = await _client.get('/users/me/couple');
     return response.data;
   }
+
+  Future<Map<String, dynamic>> getUserProfileInRelationship(
+    String userId,
+    String relationshipId,
+  ) async {
+    final response = await _client.get(
+      '/users/$userId/profile-in-relationship/$relationshipId',
+    );
+    return response.data;
+  }
 }
 
 // Couples API
