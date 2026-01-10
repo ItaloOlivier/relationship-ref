@@ -10,6 +10,7 @@ Future<void> main() async {
 
   // Load environment variables
   await dotenv.load(fileName: '.env');
+  debugPrint('API_BASE_URL: ${dotenv.env['API_BASE_URL']}');
 
   runApp(
     const ProviderScope(

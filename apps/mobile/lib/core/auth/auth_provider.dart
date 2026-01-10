@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../api/api_client.dart';
@@ -124,7 +125,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       String errorMessage = 'Registration failed. Please try again.';
       if (e.toString().contains('409') || e.toString().contains('already')) {
         errorMessage = 'Email already registered. Please login instead.';
+      } else if (e.toString().contains('NO_CONNECTION') || e.toString().contains('connection')) {
+        errorMessage = 'No internet connection. Please check your network.';
+      } else if (e.toString().contains('TIMEOUT')) {
+        errorMessage = 'Connection timeout. Please try again.';
       }
+      // Log error for debugging (debugPrint is acceptable in Flutter)
+      debugPrint('Registration error: $e');
       state = state.copyWith(
         isLoading: false,
         error: errorMessage,

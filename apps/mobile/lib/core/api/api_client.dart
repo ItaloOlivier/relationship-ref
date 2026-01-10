@@ -1,14 +1,13 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/app_config.dart';
-import '../auth/auth_provider.dart';
 import 'api_error.dart';
 
 class ApiClient {
   final Dio _dio;
-  final Ref? _ref;
 
-  ApiClient({Ref? ref}) : _dio = Dio(), _ref = ref {
+  ApiClient() : _dio = Dio() {
     _dio.options.baseUrl = AppConfig.apiBaseUrl;
     _dio.options.connectTimeout = const Duration(seconds: 30);
     _dio.options.receiveTimeout = const Duration(seconds: 30);
@@ -17,29 +16,12 @@ class ApiClient {
       'Accept': 'application/json',
     };
 
-    // Add auth interceptor to inject token
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) {
-        // Inject auth token if available
-        if (_ref != null) {
-          final authState = _ref.read(authStateProvider);
-          if (authState.accessToken != null) {
-            options.headers['Authorization'] = 'Bearer ${authState.accessToken}';
-          }
-        }
-        return handler.next(options);
-      },
-      onError: (error, handler) {
-        // Transform DioException to ApiError
-        return handler.reject(error);
-      },
-    ));
-
     // Add logging interceptor for debug
     _dio.interceptors.add(LogInterceptor(
       requestBody: true,
       responseBody: true,
       error: true,
+      logPrint: (obj) => debugPrint(obj.toString()),
     ));
   }
 
@@ -97,5 +79,5 @@ class ApiClient {
 }
 
 final apiClientProvider = Provider<ApiClient>((ref) {
-  return ApiClient(ref: ref);
+  return ApiClient();
 });
