@@ -7,6 +7,7 @@ import '../../../../core/ui/celebration_animations.dart';
 import '../../../session/domain/session_model.dart';
 import '../../../session/data/session_repository.dart';
 import '../../../session/presentation/widgets/qa_chat_section.dart';
+import '../widgets/individual_scorecard_section.dart';
 
 class ReportScreen extends ConsumerStatefulWidget {
   final String sessionId;
@@ -146,6 +147,12 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
           // Emotional Bank Change
           _BankChangeCard(change: result.bankChange),
           const SizedBox(height: 24),
+
+          // Individual Scorecards
+          if (result.individualScores.isNotEmpty) ...[
+            IndividualScorecardSection(scores: result.individualScores),
+            const SizedBox(height: 24),
+          ],
 
           // Topic Tags
           if (result.topicTags.isNotEmpty) ...[
