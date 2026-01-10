@@ -19,6 +19,8 @@ Relationship Referee is a privacy-first mobile app that helps couples improve co
 /apps
   /api        - NestJS backend
   /mobile     - Flutter app
+  /web        - Next.js share viewer (public links)
+  /dashboard  - Next.js web dashboard (FULL APP)
 /docs         - Documentation
 ```
 
@@ -32,6 +34,14 @@ npm run test          # Run tests
 npm run build         # Build for production
 npx prisma migrate dev  # Create migration
 npx prisma studio     # DB GUI
+```
+
+### Web Dashboard (apps/dashboard)
+```bash
+npm install           # Install dependencies
+npm run dev           # Start dev server (http://localhost:3001)
+npm run build         # Build for production
+npm run lint          # Run linter
 ```
 
 ### Mobile (apps/mobile)
@@ -291,6 +301,39 @@ See [TestFlight Deployment Guide](docs/testflight-deployment.md) for complete iO
     - [RelationshipCoachingScreen](apps/mobile/lib/features/personality/presentation/screens/relationship_coaching_screen.dart)
     - [PersonalityRepository](apps/mobile/lib/features/personality/data/personality_repository.dart)
   - **Tests:** 19 unit tests for domain models (63 total tests)
+- [x] **Phase 12: Web Dashboard Foundation** (Completed 2026-01-10)
+  - **Stack**: Next.js 15, React 19, TypeScript, Tailwind CSS, Zustand
+  - **Structure**: Apps Router with (dashboard) route group and protected routes
+  - **Features Complete**:
+    - Type-safe API client with JWT authentication and auto-refresh
+    - Login and register pages with validation
+    - Protected route wrapper
+    - Dashboard layout with sidebar navigation
+    - Home dashboard with stats cards (streaks, sessions, emotional bank)
+    - Recent sessions list
+    - Quick action buttons
+  - **API Integration**: Full coverage of all backend endpoints
+  - **UI Components**: Button, Input, Card (reusable)
+  - **Authentication**: Token management with localStorage, auto-redirect on 401
+  - **CORS**: Updated backend to allow localhost:3001 and production dashboard URL
+  - **Deployment**: Ready for Vercel (alongside share viewer)
+  - **Development**: Run at http://localhost:3001 (npm run dev)
+  - **Status**: MVP complete, ready for feature expansion
+  - **Next**: Sessions management, gamification, personality, relationships, insights
+  - Commit: 1a92e9e
+- [ ] **Phase 13: Sessions Management Web UI**
+  - Sessions list with filters and search
+  - New session page (audio upload + WhatsApp import)
+  - Session detail and full report viewer
+  - Individual scorecards display
+  - Session Q&A chat interface
+- [ ] **Phase 14: Advanced Features Web UI**
+  - Gamification dashboard (quests, streaks, badges)
+  - Personality profile viewer
+  - Couple comparison screen
+  - Relationship directory (list, detail, members)
+  - Insights and patterns viewer
+  - Settings and profile management
 
 ## Key Domain Concepts
 
