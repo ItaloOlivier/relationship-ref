@@ -6,9 +6,8 @@ import '../api/api_service.dart';
 /// Service for sharing session reports and personality profiles
 class ShareService {
   final SessionsApi _sessionsApi;
-  final PersonalityApi _personalityApi;
 
-  ShareService(this._sessionsApi, this._personalityApi);
+  ShareService(this._sessionsApi);
 
   /// Create a shareable link for a session report
   Future<ShareLinkResult> createSessionShareLink(
@@ -25,15 +24,14 @@ class ShareService {
   }
 
   /// Create a shareable link for a personality profile
+  /// Note: Backend endpoint not yet implemented
   Future<ShareLinkResult> createProfileShareLink({
     int expiryDays = 7,
     bool anonymize = false,
   }) async {
-    final data = await _personalityApi.createShareLink(
-      expiryDays: expiryDays,
-      anonymize: anonymize,
+    throw UnimplementedError(
+      'Personality profile sharing not yet available. Backend endpoint in development.',
     );
-    return ShareLinkResult.fromJson(data);
   }
 
   /// Revoke a session share link
@@ -42,8 +40,11 @@ class ShareService {
   }
 
   /// Revoke a profile share link
+  /// Note: Backend endpoint not yet implemented
   Future<void> revokeProfileShareLink() async {
-    await _personalityApi.revokeShareLink();
+    throw UnimplementedError(
+      'Personality profile sharing not yet available. Backend endpoint in development.',
+    );
   }
 
   /// Copy share link to clipboard
@@ -128,6 +129,5 @@ class ShareLinkResult {
 final shareServiceProvider = Provider<ShareService>((ref) {
   return ShareService(
     ref.watch(sessionsApiProvider),
-    ref.watch(personalityApiProvider),
   );
 });

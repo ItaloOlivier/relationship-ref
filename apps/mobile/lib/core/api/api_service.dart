@@ -175,19 +175,19 @@ class PersonalityApi {
 
   /// Get current user's personality profile
   Future<Map<String, dynamic>> getMyProfile() async {
-    final response = await _client.get('/personality/me');
+    final response = await _client.get('/personality/profile/me');
     return response.data;
   }
 
   /// Get another user's personality profile (must be in same couple)
   Future<Map<String, dynamic>> getUserProfile(String userId) async {
-    final response = await _client.get('/personality/user/$userId');
+    final response = await _client.get('/personality/profile/$userId');
     return response.data;
   }
 
   /// Get personality evolution over time for current user
   Future<List<dynamic>> getMyEvolution() async {
-    final response = await _client.get('/personality/evolution');
+    final response = await _client.get('/personality/evolution/me');
     return response.data;
   }
 
@@ -209,22 +209,11 @@ class PersonalityApi {
     return response.data;
   }
 
-  /// Create a shareable link for a personality profile
-  Future<Map<String, dynamic>> createShareLink({
-    int expiryDays = 7,
-    bool anonymize = false,
-  }) async {
-    final response = await _client.post('/personality/share', data: {
-      'expiryDays': expiryDays,
-      'anonymize': anonymize,
-    });
-    return response.data;
-  }
-
-  /// Revoke a profile share link (disable sharing)
-  Future<void> revokeShareLink() async {
-    await _client.delete('/personality/share');
-  }
+  // Note: Profile sharing endpoints not yet implemented in backend
+  // TODO: Add these when backend endpoints are ready:
+  // - POST /personality/share (create share link)
+  // - DELETE /personality/share (revoke share link)
+  // - GET /personality/share/profile/:token (public endpoint)
 }
 
 // Providers
