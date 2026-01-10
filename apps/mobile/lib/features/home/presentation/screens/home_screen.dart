@@ -9,6 +9,8 @@ import '../../../../core/ui/celebration_animations.dart';
 import '../../../gamification/data/gamification_repository.dart';
 import '../../../session/data/session_repository.dart';
 import '../../../session/domain/session_model.dart';
+import '../../../insights/data/insights_repository.dart';
+import '../../../insights/presentation/widgets/insights_summary_card.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -62,6 +64,10 @@ class HomeScreen extends ConsumerWidget {
                   Expanded(child: _QuestsCard()),
                 ],
               ),
+              const SizedBox(height: 16),
+
+              // Insights Summary Card
+              _InsightsSummarySection(),
               const SizedBox(height: 24),
 
               // Start Session Button
@@ -520,5 +526,28 @@ class _SessionListItem extends StatelessWidget {
     } else {
       return DateFormat('MMM d').format(date);
     }
+  }
+}
+
+class _InsightsSummarySection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final summaryAsync = ref.watch(insightsSummaryProvider);
+
+    return summaryAsync.when(
+      data: (summary) {
+        // Only show if there are enough sessions for meaningful insights
+        if (summary.totalSessions < 2) {
+          return const SizedBox.shrink();
+        }
+
+        return InsightsSummaryCard(
+          summary: summary,
+          onTap: () => context.push('/home/insights'),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
   }
 }

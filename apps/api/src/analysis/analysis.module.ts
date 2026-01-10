@@ -4,9 +4,10 @@ import { AnalysisController } from './analysis.controller';
 import { TranscriptionService } from './transcription.service';
 import { ScoringService } from './scoring.service';
 import { SessionsModule } from '@/sessions/sessions.module';
+import { InsightsModule } from '@/insights/insights.module';
 
 @Module({
-  imports: [forwardRef(() => SessionsModule)],
+  imports: [forwardRef(() => SessionsModule), InsightsModule],
   controllers: [AnalysisController],
   providers: [AnalysisService, TranscriptionService, ScoringService],
   exports: [AnalysisService, TranscriptionService],

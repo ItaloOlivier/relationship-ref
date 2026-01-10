@@ -10,6 +10,7 @@ import '../../features/report/presentation/screens/report_screen.dart';
 import '../../features/history/presentation/screens/history_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/gamification/presentation/screens/gamification_screen.dart';
+import '../../features/insights/presentation/screens/insights_screen.dart';
 import '../auth/auth_provider.dart';
 import '../navigation/app_navigation_shell.dart';
 
@@ -79,6 +80,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'import-chat',
                     name: 'import-chat',
                     builder: (context, state) => const ChatImportScreen(),
+                  ),
+                  GoRoute(
+                    path: 'insights',
+                    name: 'insights',
+                    builder: (context, state) => const InsightsScreen(),
                   ),
                 ],
               ),

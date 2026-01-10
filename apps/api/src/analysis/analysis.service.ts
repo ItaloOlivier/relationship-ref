@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { SessionsService } from '@/sessions/sessions.service';
 import { TranscriptionService } from './transcription.service';
 import { ScoringService } from './scoring.service';
+import { PatternRecognitionService } from '@/insights/pattern-recognition.service';
 import { SessionStatus, BankEntryType } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
@@ -10,12 +11,14 @@ import OpenAI from 'openai';
 @Injectable()
 export class AnalysisService {
   private openai: OpenAI;
+  private readonly logger = new Logger(AnalysisService.name);
 
   constructor(
     private prisma: PrismaService,
     private sessionsService: SessionsService,
     private transcriptionService: TranscriptionService,
     private scoringService: ScoringService,
+    private patternRecognitionService: PatternRecognitionService,
     private config: ConfigService,
   ) {
     this.openai = new OpenAI({
@@ -109,6 +112,13 @@ export class AnalysisService {
 
       // Mark session complete
       await this.sessionsService.updateStatus(sessionId, SessionStatus.COMPLETED);
+
+      // Update pattern metrics cache (async, don't block response)
+      if (session.coupleId || session.relationshipId) {
+        this.patternRecognitionService
+          .updateMetricsCache(session.coupleId ?? undefined, session.relationshipId ?? undefined)
+          .catch((err) => this.logger.warn('Failed to update pattern metrics cache', err));
+      }
 
       return analysisResult;
     } catch (error) {

@@ -10,6 +10,7 @@ import { SessionsModule } from './sessions/sessions.module';
 import { AnalysisModule } from './analysis/analysis.module';
 import { GamificationModule } from './gamification/gamification.module';
 import { PersonalityModule } from './personality/personality.module';
+import { InsightsModule } from './insights/insights.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -31,6 +32,7 @@ import { HealthController } from './health.controller';
     AnalysisModule,
     GamificationModule,
     PersonalityModule,
+    InsightsModule,
   ],
   controllers: [HealthController],
 })
