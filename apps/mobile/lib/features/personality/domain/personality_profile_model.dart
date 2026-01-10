@@ -310,39 +310,48 @@ class PersonalityProfile extends Equatable {
   });
 
   factory PersonalityProfile.fromJson(Map<String, dynamic> json) {
-    return PersonalityProfile(
-      id: json['id'] as String,
-      userId: json['userId'] as String,
-      openness: (json['openness'] as num?)?.toDouble(),
-      conscientiousness: (json['conscientiousness'] as num?)?.toDouble(),
-      extraversion: (json['extraversion'] as num?)?.toDouble(),
-      agreeableness: (json['agreeableness'] as num?)?.toDouble(),
-      neuroticism: (json['neuroticism'] as num?)?.toDouble(),
-      attachmentStyle: AttachmentStyleX.fromString(
-          json['attachmentStyle'] as String? ?? 'UNDETERMINED'),
-      attachmentAnxiety: (json['attachmentAnxiety'] as num?)?.toDouble(),
-      attachmentAvoidance: (json['attachmentAvoidance'] as num?)?.toDouble(),
-      communicationStyle: CommunicationStyleX.fromString(
-          json['communicationStyle'] as String? ?? 'MIXED'),
-      conflictStyle: json['conflictStyle'] as String?,
-      repairInitiation: (json['repairInitiation'] as num?)?.toDouble(),
-      repairReceptivity: (json['repairReceptivity'] as num?)?.toDouble(),
-      emotionalAwareness: (json['emotionalAwareness'] as num?)?.toDouble(),
-      empathyScore: (json['empathyScore'] as num?)?.toDouble(),
-      emotionalRegulation: (json['emotionalRegulation'] as num?)?.toDouble(),
-      confidenceScore: (json['confidenceScore'] as num?)?.toDouble() ?? 0,
-      sessionsAnalyzed: json['sessionsAnalyzed'] as int? ?? 0,
-      strengthsNarrative: json['strengthsNarrative'] as String?,
-      growthAreasNarrative: json['growthAreasNarrative'] as String?,
-      communicationNarrative: json['communicationNarrative'] as String?,
-      attachmentDescription: json['attachmentDescription'] as String?,
-      communicationDescription: json['communicationDescription'] as String?,
-      traitDescriptions: TraitDescriptions.fromJson(
-          json['traitDescriptions'] as Map<String, dynamic>?),
-      updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'] as String)
-          : null,
-    );
+    try {
+      return PersonalityProfile(
+        id: json['id'] as String,
+        userId: json['userId'] as String,
+        openness: (json['openness'] as num?)?.toDouble(),
+        conscientiousness: (json['conscientiousness'] as num?)?.toDouble(),
+        extraversion: (json['extraversion'] as num?)?.toDouble(),
+        agreeableness: (json['agreeableness'] as num?)?.toDouble(),
+        neuroticism: (json['neuroticism'] as num?)?.toDouble(),
+        attachmentStyle: AttachmentStyleX.fromString(
+            json['attachmentStyle'] as String? ?? 'UNDETERMINED'),
+        attachmentAnxiety: (json['attachmentAnxiety'] as num?)?.toDouble(),
+        attachmentAvoidance: (json['attachmentAvoidance'] as num?)?.toDouble(),
+        communicationStyle: CommunicationStyleX.fromString(
+            json['communicationStyle'] as String? ?? 'MIXED'),
+        conflictStyle: json['conflictStyle'] as String?,
+        repairInitiation: (json['repairInitiation'] as num?)?.toDouble(),
+        repairReceptivity: (json['repairReceptivity'] as num?)?.toDouble(),
+        emotionalAwareness: (json['emotionalAwareness'] as num?)?.toDouble(),
+        empathyScore: (json['empathyScore'] as num?)?.toDouble(),
+        emotionalRegulation: (json['emotionalRegulation'] as num?)?.toDouble(),
+        confidenceScore: (json['confidenceScore'] as num?)?.toDouble() ?? 0,
+        sessionsAnalyzed: json['sessionsAnalyzed'] as int? ?? 0,
+        strengthsNarrative: json['strengthsNarrative'] as String?,
+        growthAreasNarrative: json['growthAreasNarrative'] as String?,
+        communicationNarrative: json['communicationNarrative'] as String?,
+        attachmentDescription: json['attachmentDescription'] as String?,
+        communicationDescription: json['communicationDescription'] as String?,
+        traitDescriptions: json['traitDescriptions'] != null && json['traitDescriptions'] is Map
+            ? TraitDescriptions.fromJson(json['traitDescriptions'] as Map<String, dynamic>)
+            : const TraitDescriptions(),
+        updatedAt: json['updatedAt'] != null
+            ? DateTime.parse(json['updatedAt'] as String)
+            : null,
+      );
+    } catch (e, stackTrace) {
+      print('ERROR in PersonalityProfile.fromJson: $e');
+      print('Stack trace: $stackTrace');
+      print('JSON keys: ${json.keys}');
+      print('trait Descriptions type: ${json['traitDescriptions']?.runtimeType}');
+      rethrow;
+    }
   }
 
   BigFiveTraits get bigFive => BigFiveTraits(
