@@ -21,7 +21,8 @@
     "db:migrate:dev": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:seed": "ts-node prisma/seed.ts",
+    "db:clean": "ts-node scripts/clean-test-data.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
