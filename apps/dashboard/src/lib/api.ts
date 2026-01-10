@@ -52,9 +52,9 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${API_URL}${endpoint}`;
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...(options.headers as Record<string, string>),
     };
 
     if (this.token) {
@@ -136,6 +136,19 @@ class ApiClient {
     return this.request<User>('/users/me', {
       method: 'PATCH',
       body: JSON.stringify(data),
+    });
+  }
+
+  async updatePassword(currentPassword: string, newPassword: string): Promise<void> {
+    return this.request<void>('/users/me/password', {
+      method: 'PATCH',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  }
+
+  async deleteAccount(): Promise<void> {
+    return this.request<void>('/users/me', {
+      method: 'DELETE',
     });
   }
 

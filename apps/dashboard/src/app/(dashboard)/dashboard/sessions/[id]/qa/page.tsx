@@ -74,8 +74,17 @@ export default function SessionQAPage() {
     try {
       const response = await api.askSessionQuestion(sessionId, question);
 
+      // Transform API response to match QAMessage interface
+      const qaMessage: QAMessage = {
+        id: Date.now().toString(),
+        sessionId: sessionId,
+        question: question,
+        answer: response.answer,
+        askedAt: new Date().toISOString(),
+      };
+
       // Add to history
-      setQaHistory([response, ...qaHistory]);
+      setQaHistory([qaMessage, ...qaHistory]);
       setCurrentQuestion('');
     } catch (error: any) {
       alert(error.message || 'Failed to get answer');
