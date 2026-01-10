@@ -84,21 +84,27 @@ export class QuestsService {
     };
   }
 
-  async getActiveQuests(userId: string) {
-    const { relationshipIds, coupleId } = await this.getUserRelationshipIds(userId);
-
-    // Build query for quests across all relationships and couple
+  async getActiveQuests(userId: string, relationshipId?: string) {
+    // Build query for quests
     const whereClause: any = {
       status: QuestStatus.ACTIVE,
       OR: []
     };
 
-    if (relationshipIds.length > 0) {
-      whereClause.OR.push({ relationshipId: { in: relationshipIds } });
-    }
+    if (relationshipId) {
+      // Filter to specific relationship
+      whereClause.OR.push({ relationshipId });
+    } else {
+      // Get all relationships and couple
+      const { relationshipIds, coupleId } = await this.getUserRelationshipIds(userId);
 
-    if (coupleId) {
-      whereClause.OR.push({ coupleId });
+      if (relationshipIds.length > 0) {
+        whereClause.OR.push({ relationshipId: { in: relationshipIds } });
+      }
+
+      if (coupleId) {
+        whereClause.OR.push({ coupleId });
+      }
     }
 
     if (whereClause.OR.length === 0) {

@@ -30,19 +30,22 @@ export class SessionsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all sessions for current user couple' })
+  @ApiOperation({ summary: 'Get all sessions for current user (optionally filtered by relationship)' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'relationshipId', required: false, description: 'Filter by specific relationship' })
   @ApiResponse({ status: 200, description: 'Sessions list retrieved' })
   async findAll(
     @Request() req: any,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('relationshipId') relationshipId?: string,
   ) {
     return this.sessionsService.findAllForUser(
       req.user.id,
       page ? parseInt(page, 10) : 1,
       limit ? parseInt(limit, 10) : 20,
+      relationshipId,
     );
   }
 

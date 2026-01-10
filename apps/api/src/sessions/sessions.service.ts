@@ -112,29 +112,34 @@ export class SessionsService {
     return session;
   }
 
-  async findAllForUser(userId: string, page = 1, limit = 20) {
-    // Get all relationships for user (includes couples via backward compatibility)
-    const relationships = await this.relationshipsService.getRelationshipsForUser(userId, false);
-    const relationshipIds = relationships.map((r: { id: string }) => r.id);
-
-    // Also try to get legacy couple
-    const couple = await this.couplesService.getCoupleForUser(userId);
-    const coupleId = couple?.id;
-
-    // Build query to find sessions from relationships, couple, OR solo sessions (initiator)
+  async findAllForUser(userId: string, page = 1, limit = 20, relationshipId?: string) {
+    // Build query to find sessions
     const whereClause: any = {
-      OR: [
-        // Solo sessions - user is the initiator and no couple/relationship linked
-        { initiatorId: userId },
-      ]
+      OR: []
     };
 
-    if (relationshipIds.length > 0) {
-      whereClause.OR.push({ relationshipId: { in: relationshipIds } });
-    }
+    if (relationshipId) {
+      // Filter to specific relationship
+      whereClause.OR.push({ relationshipId });
+    } else {
+      // Get all relationships for user (includes couples via backward compatibility)
+      const relationships = await this.relationshipsService.getRelationshipsForUser(userId, false);
+      const relationshipIds = relationships.map((r: { id: string }) => r.id);
 
-    if (coupleId) {
-      whereClause.OR.push({ coupleId });
+      // Also try to get legacy couple
+      const couple = await this.couplesService.getCoupleForUser(userId);
+      const coupleId = couple?.id;
+
+      // Solo sessions - user is the initiator and no couple/relationship linked
+      whereClause.OR.push({ initiatorId: userId });
+
+      if (relationshipIds.length > 0) {
+        whereClause.OR.push({ relationshipId: { in: relationshipIds } });
+      }
+
+      if (coupleId) {
+        whereClause.OR.push({ coupleId });
+      }
     }
 
     const [sessions, total] = await Promise.all([
