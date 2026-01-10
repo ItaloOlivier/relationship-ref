@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../data/recording_provider.dart';
+import '../../../relationship/presentation/providers/selected_relationship_provider.dart';
 
 class SessionScreen extends ConsumerStatefulWidget {
   const SessionScreen({super.key});
@@ -35,7 +36,11 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
   }
 
   void _stopRecording() {
-    ref.read(recordingProvider.notifier).stopRecording(retainAudio: _retainAudio);
+    final selectedRelationshipId = ref.read(selectedRelationshipIdProvider);
+    ref.read(recordingProvider.notifier).stopRecording(
+      retainAudio: _retainAudio,
+      relationshipId: selectedRelationshipId,
+    );
   }
 
   void _cancelRecording() {

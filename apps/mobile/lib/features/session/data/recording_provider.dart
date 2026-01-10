@@ -138,7 +138,10 @@ class RecordingNotifier extends StateNotifier<RecordingStatus> {
     }
   }
 
-  Future<void> stopRecording({bool retainAudio = false}) async {
+  Future<void> stopRecording({
+    bool retainAudio = false,
+    String? relationshipId,
+  }) async {
     try {
       _timer?.cancel();
       final path = await _recorder.stop();
@@ -156,7 +159,7 @@ class RecordingNotifier extends StateNotifier<RecordingStatus> {
         filePath: path,
       );
 
-      await _uploadAndProcess(path, retainAudio);
+      await _uploadAndProcess(path, retainAudio, relationshipId);
     } catch (e) {
       state = state.copyWith(
         state: RecordingState.error,
@@ -165,12 +168,22 @@ class RecordingNotifier extends StateNotifier<RecordingStatus> {
     }
   }
 
-  Future<void> _uploadAndProcess(String filePath, bool retainAudio) async {
+  Future<void> _uploadAndProcess(
+    String filePath,
+    bool retainAudio,
+    String? relationshipId,
+  ) async {
     try {
       // Create session first
-      final createResponse = await _apiClient.post('/sessions', data: {
+      final sessionData = <String, dynamic>{
         'retainAudio': retainAudio,
-      });
+      };
+
+      if (relationshipId != null) {
+        sessionData['relationshipId'] = relationshipId;
+      }
+
+      final createResponse = await _apiClient.post('/sessions', data: sessionData);
 
       if (createResponse.statusCode != 201) {
         throw Exception('Failed to create session');
