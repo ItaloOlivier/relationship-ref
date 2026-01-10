@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/auth/auth_provider.dart';
 import '../../../../core/ui/skeleton_loading.dart';
+import '../../../../core/ui/celebration_animations.dart';
 import '../../../gamification/data/gamification_repository.dart';
 import '../../../session/data/session_repository.dart';
 import '../../../session/domain/session_model.dart';
@@ -177,14 +178,51 @@ class _EmotionalBankCard extends ConsumerWidget {
   }
 }
 
-class _StreakCard extends ConsumerWidget {
+class _StreakCard extends ConsumerStatefulWidget {
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_StreakCard> createState() => _StreakCardState();
+}
+
+class _StreakCardState extends ConsumerState<_StreakCard> {
+  int? _previousStreak;
+
+  void _checkStreakMilestone(BuildContext context, int currentStreak) {
+    // Only celebrate if streak increased
+    if (_previousStreak != null && currentStreak > _previousStreak!) {
+      CelebrationType? celebrationType;
+      String? message;
+
+      if (currentStreak == 7) {
+        celebrationType = CelebrationType.streakMilestone;
+        message = '7-Day Streak! 🔥\nYou\'re on fire!';
+      } else if (currentStreak == 30) {
+        celebrationType = CelebrationType.streakMajor;
+        message = '30-Day Streak! 🏆\nIncredible dedication!';
+      } else if (currentStreak == 100) {
+        celebrationType = CelebrationType.streakLegendary;
+        message = '100-Day Streak! 👑\nYou\'re a legend!';
+      }
+
+      if (celebrationType != null && message != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            CelebrationService.celebrate(context, celebrationType!, message: message);
+          }
+        });
+      }
+    }
+
+    _previousStreak = currentStreak;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final dashboardAsync = ref.watch(dashboardProvider);
 
     return dashboardAsync.when(
       data: (dashboard) {
         final streak = dashboard.streak;
+        _checkStreakMilestone(context, streak);
 
         return Card(
           child: Padding(

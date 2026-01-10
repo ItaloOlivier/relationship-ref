@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/skeleton_loading.dart';
+import '../../../../core/ui/celebration_animations.dart';
 import '../../data/gamification_repository.dart';
 import '../../domain/gamification_model.dart';
 
@@ -319,13 +320,20 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _QuestCard extends StatelessWidget {
+class _QuestCard extends StatefulWidget {
   final Quest quest;
 
   const _QuestCard({required this.quest});
 
+  @override
+  State<_QuestCard> createState() => _QuestCardState();
+}
+
+class _QuestCardState extends State<_QuestCard> {
+  bool _hasShownCelebration = false;
+
   IconData _getQuestIcon() {
-    switch (quest.type) {
+    switch (widget.quest.type) {
       case QuestType.daily:
         return Icons.wb_sunny;
       case QuestType.weekly:
@@ -336,7 +344,7 @@ class _QuestCard extends StatelessWidget {
   }
 
   Color _getQuestColor() {
-    switch (quest.type) {
+    switch (widget.quest.type) {
       case QuestType.daily:
         return Colors.orange;
       case QuestType.weekly:
@@ -347,9 +355,28 @@ class _QuestCard extends StatelessWidget {
   }
 
   @override
+  void didUpdateWidget(_QuestCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Trigger celebration when quest becomes completed
+    if (!oldWidget.quest.isCompleted && widget.quest.isCompleted && !_hasShownCelebration) {
+      _hasShownCelebration = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          CelebrationService.celebrate(
+            context,
+            CelebrationType.questCompleted,
+            message: '${widget.quest.title} Complete! 🎉\n+${widget.quest.rewardPoints} points',
+          );
+        }
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final color = _getQuestColor();
-    final isCompleted = quest.isCompleted;
+    final isCompleted = widget.quest.isCompleted;
 
     return Card(
       child: Padding(
@@ -374,13 +401,13 @@ class _QuestCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        quest.title,
+                        widget.quest.title,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           decoration: isCompleted ? TextDecoration.lineThrough : null,
                         ),
                       ),
                       Text(
-                        quest.type.name.toUpperCase(),
+                        widget.quest.type.name.toUpperCase(),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: color,
                           fontWeight: FontWeight.bold,
@@ -399,7 +426,7 @@ class _QuestCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      '+${quest.rewardPoints}',
+                      '+${widget.quest.rewardPoints}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.primary,
                         fontWeight: FontWeight.bold,
@@ -410,7 +437,7 @@ class _QuestCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              quest.description,
+              widget.quest.description,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -423,7 +450,7 @@ class _QuestCard extends StatelessWidget {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
-                      value: quest.progressPercent,
+                      value: widget.quest.progressPercent,
                       backgroundColor: AppColors.border,
                       valueColor: AlwaysStoppedAnimation(
                         isCompleted ? AppColors.success : color,
@@ -434,14 +461,14 @@ class _QuestCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  '${quest.userProgress}/${quest.targetValue}',
+                  '${widget.quest.userProgress}/${widget.quest.targetValue}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
-            if (!isCompleted && quest.timeRemaining.isNotEmpty) ...[
+            if (!isCompleted && widget.quest.timeRemaining.isNotEmpty) ...[
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -452,7 +479,7 @@ class _QuestCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    quest.timeRemaining,
+                    widget.quest.timeRemaining,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.textSecondary,
                     ),

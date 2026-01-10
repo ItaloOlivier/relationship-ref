@@ -3,17 +3,47 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/skeleton_loading.dart';
+import '../../../../core/ui/celebration_animations.dart';
 import '../../../session/domain/session_model.dart';
 import '../../../session/data/session_repository.dart';
+import '../../../session/presentation/widgets/qa_chat_section.dart';
 
-class ReportScreen extends ConsumerWidget {
+class ReportScreen extends ConsumerStatefulWidget {
   final String sessionId;
 
   const ReportScreen({super.key, required this.sessionId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final sessionAsync = ref.watch(sessionProvider(sessionId));
+  ConsumerState<ReportScreen> createState() => _ReportScreenState();
+}
+
+class _ReportScreenState extends ConsumerState<ReportScreen> {
+  bool _hasShownCelebration = false;
+
+  void _checkForCelebration(BuildContext context, Session session) {
+    if (_hasShownCelebration) return;
+
+    final score = session.analysisResult?.overallScore;
+    if (score == null) return;
+
+    // Celebrate high scores (80+)
+    if (score >= 80) {
+      _hasShownCelebration = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          CelebrationService.celebrate(
+            context,
+            CelebrationType.highScore,
+            message: 'Amazing Score! 🌟\nYou scored $score/100',
+          );
+        }
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sessionAsync = ref.watch(sessionProvider(widget.sessionId));
 
     return Scaffold(
       appBar: AppBar(
@@ -31,7 +61,10 @@ class ReportScreen extends ConsumerWidget {
         ],
       ),
       body: sessionAsync.when(
-        data: (session) => _buildReport(context, session),
+        data: (session) {
+          _checkForCelebration(context, session);
+          return _buildReport(context, session);
+        },
         loading: () => const ReportSkeleton(),
         error: (error, stack) => _buildError(context, error),
       ),
@@ -187,6 +220,10 @@ class ReportScreen extends ConsumerWidget {
             _SafetyResourcesCard(resources: result.safetyResources),
             const SizedBox(height: 24),
           ],
+
+          // Q&A Section
+          QAChatSection(sessionId: session.id),
+          const SizedBox(height: 24),
 
           // Actions
           Row(
