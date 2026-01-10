@@ -69,6 +69,45 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
 
+          // Personality Section
+          Text(
+            'Personality',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.psychology),
+                  title: const Text('My Personality Profile'),
+                  subtitle: const Text('View your communication style'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/settings/personality'),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.compare_arrows),
+                  title: const Text('Couple Comparison'),
+                  subtitle: const Text('See your differences & similarities'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/settings/personality/comparison'),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.school),
+                  title: const Text('Relationship Coaching'),
+                  subtitle: const Text('Personalized tips & insights'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/settings/personality/coaching'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
           // Couple Section
           Text(
             'Couple',
@@ -80,16 +119,6 @@ class SettingsScreen extends ConsumerWidget {
           Card(
             child: Column(
               children: [
-                ListTile(
-                  leading: const Icon(Icons.people),
-                  title: const Text('Partner Settings'),
-                  subtitle: const Text('Manage your couple'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    // TODO: Partner settings
-                  },
-                ),
-                const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.link),
                   title: const Text('Invite Partner'),

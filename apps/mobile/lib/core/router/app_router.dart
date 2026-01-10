@@ -10,6 +10,9 @@ import '../../features/history/presentation/screens/history_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/gamification/presentation/screens/gamification_screen.dart';
 import '../../features/insights/presentation/screens/insights_screen.dart';
+import '../../features/personality/presentation/screens/personality_profile_screen.dart';
+import '../../features/personality/presentation/screens/couple_comparison_screen.dart';
+import '../../features/personality/presentation/screens/relationship_coaching_screen.dart';
 import '../auth/auth_provider.dart';
 import '../navigation/app_navigation_shell.dart';
 
@@ -116,6 +119,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: '/settings',
                 name: 'settings',
                 builder: (context, state) => const SettingsScreen(),
+                routes: [
+                  // Personality profile routes (nested under settings)
+                  GoRoute(
+                    path: 'personality',
+                    name: 'personality',
+                    builder: (context, state) => const PersonalityProfileScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'comparison',
+                        name: 'personality-comparison',
+                        builder: (context, state) => const CoupleComparisonScreen(),
+                      ),
+                      GoRoute(
+                        path: 'coaching',
+                        name: 'personality-coaching',
+                        builder: (context, state) => const RelationshipCoachingScreen(),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),

@@ -41,7 +41,12 @@ flutter run           # Run app
 flutter test          # Run tests
 flutter build apk     # Build Android
 flutter build ios     # Build iOS
+
+# iOS TestFlight Deployment
+./scripts/deploy-ios.sh  # Build and prepare for TestFlight upload
 ```
+
+See [TestFlight Deployment Guide](docs/testflight-deployment.md) for complete iOS deployment instructions.
 
 ## Phase Status
 
@@ -103,7 +108,25 @@ flutter build ios     # Build iOS
 - [ ] Phase 8: Type-Specific Coaching
 - [ ] Phase 9: Relationship Lifecycle Management
 - [ ] Phase 10: Polish & Hardening
-- [ ] Phase 11: Personality Profiles (in progress)
+- [x] **Phase 11: Personality Profiles** (Completed 2026-01-10)
+  - **Backend (NestJS):** Already complete - full REST API at `/personality/...`
+  - **Frontend (Flutter):**
+    - Domain models: PersonalityProfile, RelationshipDynamic, CoupleComparison
+    - PersonalityRepository with Riverpod providers
+    - PersonalityProfileScreen (4 tabs: Overview, Traits, Attachment, Coaching)
+    - CoupleComparisonScreen (3 tabs: Overview, Traits, Insights)
+    - RelationshipCoachingScreen (coaching tips, Gottman ratio, strengths/growth)
+    - Widget components: TraitGaugeCard, AttachmentStyleCard, CommunicationStyleCard, EmotionalIntelligenceCard, NarrativeCard
+  - **Routes:**
+    - `/settings/personality` - My Personality Profile
+    - `/settings/personality/comparison` - Couple Comparison
+    - `/settings/personality/coaching` - Relationship Coaching
+  - **Key Files:**
+    - [PersonalityProfileScreen](apps/mobile/lib/features/personality/presentation/screens/personality_profile_screen.dart)
+    - [CoupleComparisonScreen](apps/mobile/lib/features/personality/presentation/screens/couple_comparison_screen.dart)
+    - [RelationshipCoachingScreen](apps/mobile/lib/features/personality/presentation/screens/relationship_coaching_screen.dart)
+    - [PersonalityRepository](apps/mobile/lib/features/personality/data/personality_repository.dart)
+  - **Tests:** 19 unit tests for domain models (63 total tests)
 
 ## Key Domain Concepts
 
@@ -181,6 +204,13 @@ GET  /insights/patterns      - Get detected patterns
 POST /insights/patterns/analyze - Trigger pattern analysis
 POST /insights/patterns/:id/acknowledge - Acknowledge a pattern
 POST /insights/patterns/:id/dismiss - Dismiss a pattern
+
+GET  /personality/me         - Get current user's personality profile
+GET  /personality/user/:id   - Get another user's profile (same couple)
+GET  /personality/evolution  - Get personality evolution over time
+GET  /personality/couple     - Get couple relationship dynamics
+GET  /personality/couple/comparison - Get side-by-side comparison
+POST /personality/analyze/:sessionId - Analyze session for personality insights
 ```
 
 ## Session Q&A
@@ -256,3 +286,9 @@ The `LinguisticAnalysisService` extracts LIWC-style features from text:
 
 ### Profile Evolution
 Profiles evolve over time as more sessions are analyzed. Each session creates a `LinguisticSnapshot` that contributes to the running profile averages with confidence scores based on data quantity.
+
+### Flutter Integration
+- **Personality Profile Screen**: 4-tab view at `/settings/personality` showing Overview, Big Five Traits, Attachment Style, and Coaching Tips
+- **Couple Comparison Screen**: Side-by-side comparison at `/settings/personality/comparison` showing both partners' traits and compatibility insights
+- **Relationship Coaching Screen**: Personalized tips at `/settings/personality/coaching` based on Gottman research and relationship dynamics
+- **Settings Integration**: All personality features accessible from Settings → Personality section

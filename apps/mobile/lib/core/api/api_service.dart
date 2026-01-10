@@ -140,6 +140,48 @@ class GamificationApi {
   }
 }
 
+// Personality API
+class PersonalityApi {
+  final ApiClient _client;
+  PersonalityApi(this._client);
+
+  /// Get current user's personality profile
+  Future<Map<String, dynamic>> getMyProfile() async {
+    final response = await _client.get('/personality/profile/me');
+    return response.data;
+  }
+
+  /// Get another user's personality profile (must be in same couple)
+  Future<Map<String, dynamic>> getUserProfile(String userId) async {
+    final response = await _client.get('/personality/profile/$userId');
+    return response.data;
+  }
+
+  /// Get personality evolution over time for current user
+  Future<List<dynamic>> getMyEvolution() async {
+    final response = await _client.get('/personality/evolution/me');
+    return response.data;
+  }
+
+  /// Get relationship dynamics for current couple
+  Future<Map<String, dynamic>> getCoupleAnalysis() async {
+    final response = await _client.get('/personality/couple');
+    return response.data;
+  }
+
+  /// Get side-by-side personality comparison for couple
+  Future<Map<String, dynamic>> getCoupleComparison() async {
+    final response = await _client.get('/personality/couple/comparison');
+    return response.data;
+  }
+
+  /// Analyze a specific session for personality insights
+  Future<Map<String, dynamic>> analyzeSession(String sessionId) async {
+    final response = await _client.post('/personality/analyze/$sessionId');
+    return response.data;
+  }
+}
+
 // Providers
 final authApiProvider = Provider<AuthApi>((ref) {
   return AuthApi(ref.watch(apiClientProvider));
@@ -159,4 +201,8 @@ final sessionsApiProvider = Provider<SessionsApi>((ref) {
 
 final gamificationApiProvider = Provider<GamificationApi>((ref) {
   return GamificationApi(ref.watch(apiClientProvider));
+});
+
+final personalityApiProvider = Provider<PersonalityApi>((ref) {
+  return PersonalityApi(ref.watch(apiClientProvider));
 });
