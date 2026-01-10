@@ -115,12 +115,12 @@ class RelationshipDynamic extends Equatable {
         dynamicNarrative: json['dynamicNarrative'] as String?,
         coachingFocus: json['coachingFocus'] as String?,
         strengthDescriptions: (json['strengthDescriptions'] as List<dynamic>?)
-                ?.where((e) => e is Map<String, dynamic>)
+                ?.whereType<Map<String, dynamic>>()
                 .map((e) => StrengthDescription.fromJson(e as Map<String, dynamic>))
                 .toList() ??
             [],
         growthDescriptions: (json['growthDescriptions'] as List<dynamic>?)
-                ?.where((e) => e is Map<String, dynamic>)
+                ?.whereType<Map<String, dynamic>>()
                 .map((e) => GrowthDescription.fromJson(e as Map<String, dynamic>))
                 .toList() ??
             [],

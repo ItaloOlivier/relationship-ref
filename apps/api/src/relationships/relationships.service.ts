@@ -389,7 +389,7 @@ export class RelationshipsService {
             individualScores: true,
           },
         },
-        user: {
+        initiator: {
           select: {
             id: true,
             name: true,
@@ -427,15 +427,15 @@ export class RelationshipsService {
       };
     }
 
-    const metrics = metricsCache.metrics as any;
-
     return {
       hasData: true,
-      topicFrequency: metrics.topicFrequency || {},
-      hourlyScoreDistribution: metrics.hourlyScoreDistribution || {},
-      monthlyScoreAverages: metrics.monthlyScoreAverages || {},
-      horsemenTrend: metrics.horsemenTrend || {},
-      repairAttemptTrend: metrics.repairAttemptTrend || {},
+      topicFrequency: metricsCache.topicFrequency || {},
+      topicScores: metricsCache.topicScores || {},
+      hourlyDistribution: metricsCache.hourlyDistribution || {},
+      weekdayDistribution: metricsCache.weekdayDistribution || {},
+      monthlyScores: metricsCache.monthlyScores || {},
+      horsemenTrend: metricsCache.horsemenTrend || {},
+      repairAttemptTrend: metricsCache.repairAttemptTrend || {},
       lastUpdated: metricsCache.lastUpdated,
     };
   }
