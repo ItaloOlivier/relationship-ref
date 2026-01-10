@@ -11,6 +11,7 @@ import '../../features/history/presentation/screens/history_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/gamification/presentation/screens/gamification_screen.dart';
 import '../auth/auth_provider.dart';
+import '../navigation/app_navigation_shell.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -55,43 +56,75 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
-      GoRoute(
-        path: '/home',
-        name: 'home',
-        builder: (context, state) => const HomeScreen(),
-      ),
-      GoRoute(
-        path: '/session',
-        name: 'session',
-        builder: (context, state) => const SessionScreen(),
-      ),
-      GoRoute(
-        path: '/import-chat',
-        name: 'import-chat',
-        builder: (context, state) => const ChatImportScreen(),
-      ),
-      GoRoute(
-        path: '/report/:sessionId',
-        name: 'report',
-        builder: (context, state) {
-          final sessionId = state.pathParameters['sessionId']!;
-          return ReportScreen(sessionId: sessionId);
+      // Main app shell with bottom navigation
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return AppNavigationShell(navigationShell: navigationShell);
         },
-      ),
-      GoRoute(
-        path: '/history',
-        name: 'history',
-        builder: (context, state) => const HistoryScreen(),
-      ),
-      GoRoute(
-        path: '/settings',
-        name: 'settings',
-        builder: (context, state) => const SettingsScreen(),
-      ),
-      GoRoute(
-        path: '/gamification',
-        name: 'gamification',
-        builder: (context, state) => const GamificationScreen(),
+        branches: [
+          // Branch 1: Home
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/home',
+                name: 'home',
+                builder: (context, state) => const HomeScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'session',
+                    name: 'session',
+                    builder: (context, state) => const SessionScreen(),
+                  ),
+                  GoRoute(
+                    path: 'import-chat',
+                    name: 'import-chat',
+                    builder: (context, state) => const ChatImportScreen(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          // Branch 2: History (Reports)
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/history',
+                name: 'history',
+                builder: (context, state) => const HistoryScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'report/:sessionId',
+                    name: 'report',
+                    builder: (context, state) {
+                      final sessionId = state.pathParameters['sessionId']!;
+                      return ReportScreen(sessionId: sessionId);
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+          // Branch 3: Gamification (Progress)
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/gamification',
+                name: 'gamification',
+                builder: (context, state) => const GamificationScreen(),
+              ),
+            ],
+          ),
+          // Branch 4: Settings
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/settings',
+                name: 'settings',
+                builder: (context, state) => const SettingsScreen(),
+              ),
+            ],
+          ),
+        ],
       ),
     ],
   );
