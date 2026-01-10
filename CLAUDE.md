@@ -236,6 +236,16 @@ See [TestFlight Deployment Guide](docs/testflight-deployment.md) for complete iO
     - Tests: 287 passing (271 original + 16 new)
     - Documentation: Full Swagger + comments
     - Commit: 3ba98f3
+- **Critical Bug Fix: Ratio-Based Scoring Algorithm** (2026-01-10)
+  - **Problem**: Previous algorithm allowed false "improvement" (100 red cards + 1 green card = score 75)
+  - **Solution**: Implemented Gottman 5:1 ratio-based scoring
+  - **Algorithm**: Score = (green / (yellow + 2*red)) / 5.0 * 100
+  - **Weighting**: Red cards 2x heavier than yellow (more damaging)
+  - **Scoring Scale**: ratio >= 5.0 = 100, ratio = 1.0 = 50, ratio = 0.0 = 0
+  - **Research Basis**: Gottman Institute research - healthy relationships need 5:1 positive:negative ratio
+  - **Tests**: Added 10 comprehensive ratio-based tests, all 296 tests passing
+  - **Applied to**: Both overall session scores and individual speaker scores
+  - Commit: 748c14d
 - [ ] **Phase 8: Type-Specific Coaching**
   - Business relationship coaching (conflict resolution, negotiation)
   - Friendship coaching (boundary setting, support patterns)
