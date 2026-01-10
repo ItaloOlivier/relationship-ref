@@ -234,10 +234,11 @@ model AnalysisResult {
   bankChange      Int @default(0) // Net emotional bank change
 
   // Detailed breakdown (JSON)
-  cards            Json // Array of { type, reason, timestamp?, quote? }
+  cards            Json // Array of { type, reason, timestamp?, quote?, speaker?, userId? }
   horsemenDetected Json // Array of detected horsemen patterns
   repairAttempts   Json // Array of repair attempts detected
   topicTags        String[] // Conversation topics
+  individualScores Json? // Array of { userId?, speaker, greenCardCount, yellowCardCount, redCardCount, personalScore, bankContribution, horsemenUsed, repairAttemptCount }
 
   // Coaching output
   whatWentWell     String? @db.Text

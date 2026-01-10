@@ -103,12 +103,18 @@ See [TestFlight Deployment Guide](docs/testflight-deployment.md) for complete iO
     - [InsightsController](apps/api/src/insights/insights.controller.ts)
     - [InsightsScreen](apps/mobile/lib/features/insights/presentation/screens/insights_screen.dart)
     - [QAChatSection](apps/mobile/lib/features/session/presentation/widgets/qa_chat_section.dart)
-- [ ] **Phase 6: Multi-Relationship UI & Features**
-  - Relationship list/switcher in home screen
-  - Individual scorecards per participant
-  - Relationship directory (view all friends/business/partners)
-  - Cross-relationship personality comparison
-  - Type-specific UI themes (romantic vs business vs friendship)
+- [ ] **Phase 6: Multi-Relationship UI & Features** (IN PROGRESS)
+  - [x] Phase 6.1: Database Foundation (2026-01-10)
+    - Added `individualScores` JSON field to AnalysisResult model
+    - Migration: `20260110_add_individual_scores_field`
+    - Schema supports speaker-attributed cards and per-person score breakdowns
+    - Backward compatible (nullable field, existing data unaffected)
+    - All 249 existing tests pass
+  - [ ] Relationship list/switcher in home screen
+  - [ ] Individual scorecards per participant
+  - [ ] Relationship directory (view all friends/business/partners)
+  - [ ] Cross-relationship personality comparison
+  - [ ] Type-specific UI themes (romantic vs business vs friendship)
 - [ ] **Phase 7: WhatsApp Report Sharing**
   - Generate shareable report links
   - PDF export with branding
