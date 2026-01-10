@@ -588,6 +588,12 @@ Widget _buildEmptyState(BuildContext context) {
 }
 
 Widget _buildErrorState(BuildContext context, Object error) {
+  // Extract a safe error message
+  String errorMessage = 'Unable to load personality profile';
+
+  // Don't try to display the full error object as it may contain unparseable data
+  // Just show a generic message
+
   return Center(
     child: Padding(
       padding: const EdgeInsets.all(32),
@@ -602,7 +608,7 @@ Widget _buildErrorState(BuildContext context, Object error) {
           ),
           const SizedBox(height: 8),
           Text(
-            error.toString(),
+            errorMessage,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppColors.textSecondary,
                 ),
