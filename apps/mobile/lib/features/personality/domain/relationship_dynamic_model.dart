@@ -74,54 +74,68 @@ class RelationshipDynamic extends Equatable {
   });
 
   factory RelationshipDynamic.fromJson(Map<String, dynamic> json) {
-    return RelationshipDynamic(
-      id: json['id'] as String,
-      coupleId: json['coupleId'] as String?,
-      relationshipId: json['relationshipId'] as String?,
-      pursuerWithdrawer: json['pursuerWithdrawer'] as bool?,
-      pursuerId: json['pursuerId'] as String?,
-      conversationDominance: json['conversationDominance'] != null
-          ? Map<String, double>.from(
-              (json['conversationDominance'] as Map).map(
-                (k, v) => MapEntry(k as String, (v as num).toDouble()),
-              ),
-            )
-          : null,
-      interruptionPattern: json['interruptionPattern'] as Map<String, dynamic>?,
-      topicInitiation: json['topicInitiation'] as Map<String, dynamic>?,
-      emotionalReciprocity:
-          (json['emotionalReciprocity'] as num?)?.toDouble(),
-      validationBalance: (json['validationBalance'] as num?)?.toDouble(),
-      supportBalance: (json['supportBalance'] as num?)?.toDouble(),
-      escalationTendency: (json['escalationTendency'] as num?)?.toDouble(),
-      deescalationSkill: (json['deescalationSkill'] as num?)?.toDouble(),
-      resolutionRate: (json['resolutionRate'] as num?)?.toDouble(),
-      positiveToNegativeRatio:
-          (json['positiveToNegativeRatio'] as num?)?.toDouble(),
-      relationshipStrengths: (json['relationshipStrengths'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
-      growthOpportunities: (json['growthOpportunities'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
-      dynamicNarrative: json['dynamicNarrative'] as String?,
-      coachingFocus: json['coachingFocus'] as String?,
-      strengthDescriptions: (json['strengthDescriptions'] as List<dynamic>?)
-              ?.map((e) => StrengthDescription.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
-      growthDescriptions: (json['growthDescriptions'] as List<dynamic>?)
-              ?.map((e) => GrowthDescription.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
-      confidenceScore: (json['confidenceScore'] as num?)?.toDouble() ?? 0,
-      sessionsAnalyzed: json['sessionsAnalyzed'] as int? ?? 0,
-      updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'] as String)
-          : null,
-    );
+    try {
+      return RelationshipDynamic(
+        id: json['id'] as String,
+        coupleId: json['coupleId'] as String?,
+        relationshipId: json['relationshipId'] as String?,
+        pursuerWithdrawer: json['pursuerWithdrawer'] as bool?,
+        pursuerId: json['pursuerId'] as String?,
+        conversationDominance: json['conversationDominance'] != null &&
+                json['conversationDominance'] is Map
+            ? Map<String, double>.from(
+                (json['conversationDominance'] as Map).map(
+                  (k, v) => MapEntry(k as String, (v as num).toDouble()),
+                ),
+              )
+            : null,
+        interruptionPattern: json['interruptionPattern'] is Map<String, dynamic>
+            ? json['interruptionPattern'] as Map<String, dynamic>
+            : null,
+        topicInitiation: json['topicInitiation'] is Map<String, dynamic>
+            ? json['topicInitiation'] as Map<String, dynamic>
+            : null,
+        emotionalReciprocity:
+            (json['emotionalReciprocity'] as num?)?.toDouble(),
+        validationBalance: (json['validationBalance'] as num?)?.toDouble(),
+        supportBalance: (json['supportBalance'] as num?)?.toDouble(),
+        escalationTendency: (json['escalationTendency'] as num?)?.toDouble(),
+        deescalationSkill: (json['deescalationSkill'] as num?)?.toDouble(),
+        resolutionRate: (json['resolutionRate'] as num?)?.toDouble(),
+        positiveToNegativeRatio:
+            (json['positiveToNegativeRatio'] as num?)?.toDouble(),
+        relationshipStrengths: (json['relationshipStrengths'] as List<dynamic>?)
+                ?.map((e) => e as String)
+                .toList() ??
+            [],
+        growthOpportunities: (json['growthOpportunities'] as List<dynamic>?)
+                ?.map((e) => e as String)
+                .toList() ??
+            [],
+        dynamicNarrative: json['dynamicNarrative'] as String?,
+        coachingFocus: json['coachingFocus'] as String?,
+        strengthDescriptions: (json['strengthDescriptions'] as List<dynamic>?)
+                ?.where((e) => e is Map<String, dynamic>)
+                .map((e) => StrengthDescription.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [],
+        growthDescriptions: (json['growthDescriptions'] as List<dynamic>?)
+                ?.where((e) => e is Map<String, dynamic>)
+                .map((e) => GrowthDescription.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [],
+        confidenceScore: (json['confidenceScore'] as num?)?.toDouble() ?? 0,
+        sessionsAnalyzed: json['sessionsAnalyzed'] as int? ?? 0,
+        updatedAt: json['updatedAt'] != null
+            ? DateTime.parse(json['updatedAt'] as String)
+            : null,
+      );
+    } catch (e, stackTrace) {
+      print('ERROR in RelationshipDynamic.fromJson: $e');
+      print('Stack trace: $stackTrace');
+      print('JSON keys: ${json.keys}');
+      rethrow;
+    }
   }
 
   /// Whether the Gottman ratio is healthy (>= 5:1)

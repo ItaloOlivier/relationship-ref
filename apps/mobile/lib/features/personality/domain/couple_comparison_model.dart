@@ -15,13 +15,23 @@ class PartnerProfile extends Equatable {
   });
 
   factory PartnerProfile.fromJson(Map<String, dynamic> json) {
-    return PartnerProfile(
-      userId: json['userId'] as String,
-      name: json['name'] as String? ?? 'Partner',
-      profile: json['profile'] != null
-          ? PersonalityProfile.fromJson(json['profile'] as Map<String, dynamic>)
-          : null,
-    );
+    try {
+      return PartnerProfile(
+        userId: json['userId'] as String,
+        name: json['name'] as String? ?? 'Partner',
+        profile: json['profile'] != null
+            ? (json['profile'] is Map<String, dynamic>
+                ? PersonalityProfile.fromJson(json['profile'] as Map<String, dynamic>)
+                : null)
+            : null,
+      );
+    } catch (e) {
+      print('ERROR in PartnerProfile.fromJson: $e');
+      print('JSON keys: ${json.keys}');
+      print('profile type: ${json['profile']?.runtimeType}');
+      print('profile value: ${json['profile']}');
+      rethrow;
+    }
   }
 
   @override
@@ -43,17 +53,35 @@ class CoupleComparison extends Equatable {
   });
 
   factory CoupleComparison.fromJson(Map<String, dynamic> json) {
-    return CoupleComparison(
-      partner1: PartnerProfile.fromJson(json['partner1'] as Map<String, dynamic>),
-      partner2: PartnerProfile.fromJson(json['partner2'] as Map<String, dynamic>),
-      dynamics: json['dynamics'] != null
-          ? RelationshipDynamic.fromJson(json['dynamics'] as Map<String, dynamic>)
-          : null,
-      insights: (json['insights'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
-    );
+    try {
+      print('CoupleComparison.fromJson - JSON keys: ${json.keys}');
+      print('partner1 type: ${json['partner1']?.runtimeType}');
+      print('partner2 type: ${json['partner2']?.runtimeType}');
+      print('dynamics type: ${json['dynamics']?.runtimeType}');
+
+      return CoupleComparison(
+        partner1: json['partner1'] is Map<String, dynamic>
+            ? PartnerProfile.fromJson(json['partner1'] as Map<String, dynamic>)
+            : throw Exception('partner1 is not a Map: ${json['partner1']?.runtimeType}'),
+        partner2: json['partner2'] is Map<String, dynamic>
+            ? PartnerProfile.fromJson(json['partner2'] as Map<String, dynamic>)
+            : throw Exception('partner2 is not a Map: ${json['partner2']?.runtimeType}'),
+        dynamics: json['dynamics'] != null
+            ? (json['dynamics'] is Map<String, dynamic>
+                ? RelationshipDynamic.fromJson(json['dynamics'] as Map<String, dynamic>)
+                : null)
+            : null,
+        insights: (json['insights'] as List<dynamic>?)
+                ?.map((e) => e as String)
+                .toList() ??
+            [],
+      );
+    } catch (e, stackTrace) {
+      print('ERROR in CoupleComparison.fromJson: $e');
+      print('Stack trace: $stackTrace');
+      print('Full JSON: $json');
+      rethrow;
+    }
   }
 
   /// Check if both partners have profiles
