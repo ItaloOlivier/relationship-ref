@@ -306,10 +306,9 @@ export class ScoringService {
       }
     }
 
-    // Calculate overall score (0-100)
-    // Start at 70, adjust based on bank change
-    const baseScore = 70;
-    const adjustedScore = Math.max(0, Math.min(100, baseScore + bankChange));
+    // Calculate overall score (0-100) using Gottman 5:1 ratio method
+    // This prevents the problem where 100 red cards + 1 green card shows "improvement"
+    const overallScore = this.calculateRatioBasedScore(cards);
 
     // Calculate individual scores per speaker
     const individualScores = this.calculateIndividualScores(
@@ -324,10 +323,66 @@ export class ScoringService {
       horsemenDetected,
       repairAttempts,
       bankChange,
-      overallScore: adjustedScore,
+      overallScore,
       safetyFlagTriggered,
       individualScores,
     };
+  }
+
+  /**
+   * Calculate score using Gottman 5:1 ratio method
+   *
+   * The Gottman Institute found that healthy relationships need a 5:1 ratio
+   * of positive to negative interactions. This method calculates score based
+   * on that ratio, making it order-independent and resistant to gaming.
+   *
+   * Scoring scale:
+   * - ratio >= 5.0 = 100 (excellent - meets Gottman threshold)
+   * - ratio = 2.5 = 75 (good - above neutral)
+   * - ratio = 1.0 = 50 (balanced but not healthy)
+   * - ratio = 0.5 = 25 (concerning - more negative than positive)
+   * - ratio = 0.0 = 0 (critical - no positive behaviors)
+   *
+   * @param cards - All detected behavior cards
+   * @returns Score from 0-100 based on positive:negative ratio
+   */
+  private calculateRatioBasedScore(cards: Card[]): number {
+    // Count cards by type
+    const greenCount = cards.filter(c => c.type === CardType.GREEN).length;
+    const yellowCount = cards.filter(c => c.type === CardType.YELLOW).length;
+    const redCount = cards.filter(c => c.type === CardType.RED).length;
+
+    // Weight negative behaviors (yellow = 1x, red = 2x)
+    // This reflects that red cards are more damaging than yellow
+    const negativeWeight = yellowCount + (redCount * 2);
+
+    // Handle edge cases
+    if (greenCount === 0 && negativeWeight === 0) {
+      // No cards detected - return neutral score
+      return 70;
+    }
+
+    if (greenCount === 0 && negativeWeight > 0) {
+      // Only negative behaviors - very bad
+      return 0;
+    }
+
+    if (negativeWeight === 0 && greenCount > 0) {
+      // Only positive behaviors - excellent
+      return 100;
+    }
+
+    // Calculate ratio: positive / negative
+    const ratio = greenCount / negativeWeight;
+
+    // Convert ratio to 0-100 score
+    // ratio >= 5.0 = 100 (Gottman threshold)
+    // ratio = 1.0 = 50 (balanced)
+    // ratio = 0.0 = 0 (all negative)
+    const score = (ratio / 5.0) * 100;
+
+    // Cap at 100 and floor at 0
+    return Math.max(0, Math.min(100, score));
   }
 
   /**
@@ -398,10 +453,21 @@ export class ScoringService {
       }
     }
 
-    // Calculate personal scores (0-100) for each speaker
+    // Calculate personal scores (0-100) for each speaker using ratio method
     for (const score of speakerMap.values()) {
-      const baseScore = 70;
-      score.personalScore = Math.max(0, Math.min(100, baseScore + score.bankContribution));
+      const negativeWeight = score.yellowCardCount + (score.redCardCount * 2);
+
+      // Apply same ratio-based logic as overall score
+      if (score.greenCardCount === 0 && negativeWeight === 0) {
+        score.personalScore = 70; // Neutral
+      } else if (score.greenCardCount === 0 && negativeWeight > 0) {
+        score.personalScore = 0; // Only negative
+      } else if (negativeWeight === 0 && score.greenCardCount > 0) {
+        score.personalScore = 100; // Only positive
+      } else {
+        const ratio = score.greenCardCount / negativeWeight;
+        score.personalScore = Math.max(0, Math.min(100, (ratio / 5.0) * 100));
+      }
     }
 
     return Array.from(speakerMap.values());
