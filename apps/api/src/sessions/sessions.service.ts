@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { CouplesService } from '@/couples/couples.service';
+import { RelationshipsService } from '@/relationships/relationships.service';
 import { SessionStatus, SessionSourceType } from '@prisma/client';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
@@ -12,19 +13,37 @@ export class SessionsService {
   constructor(
     private prisma: PrismaService,
     private couplesService: CouplesService,
+    private relationshipsService: RelationshipsService,
     private whatsAppParser: WhatsAppParserService,
   ) {}
 
   async create(userId: string, dto: CreateSessionDto) {
-    const couple = await this.couplesService.getCoupleForUser(userId);
+    let relationshipId: string | null = null;
+    let coupleId: string | null = null;
 
-    if (!couple) {
-      throw new BadRequestException('Must be in a couple to create a session');
+    // If relationshipId provided, use new system
+    if (dto.relationshipId) {
+      const relationship = await this.relationshipsService.getRelationshipById(
+        dto.relationshipId,
+        userId
+      );
+      if (!relationship) {
+        throw new BadRequestException('Relationship not found or access denied');
+      }
+      relationshipId = dto.relationshipId;
+    } else {
+      // Fallback: Try to get active romantic couple
+      const couple = await this.couplesService.getCoupleForUser(userId);
+      if (!couple) {
+        throw new BadRequestException('Must be in a couple or relationship to create a session');
+      }
+      coupleId = couple.id;
     }
 
     const session = await this.prisma.session.create({
       data: {
-        coupleId: couple.id,
+        coupleId,
+        relationshipId,
         initiatorId: userId,
         retainAudio: dto.retainAudio ?? false,
         status: SessionStatus.RECORDING,
@@ -39,6 +58,14 @@ export class SessionsService {
       where: { id: sessionId },
       include: {
         couple: true,
+        relationship: {
+          include: {
+            members: {
+              where: { leftAt: null },
+              include: { user: true }
+            }
+          }
+        },
         analysisResult: true,
         initiator: { select: { id: true, name: true } },
       },
@@ -48,8 +75,18 @@ export class SessionsService {
       throw new NotFoundException('Session not found');
     }
 
-    // Check user has access
-    if (session.couple.partner1Id !== userId && session.couple.partner2Id !== userId) {
+    // Check user has access (either via couple or relationship)
+    let hasAccess = false;
+
+    if (session.couple) {
+      hasAccess = session.couple.partner1Id === userId || session.couple.partner2Id === userId;
+    }
+
+    if (session.relationship) {
+      hasAccess = session.relationship.members.some(member => member.userId === userId);
+    }
+
+    if (!hasAccess) {
       throw new ForbiddenException('Not authorized to view this session');
     }
 
@@ -57,16 +94,49 @@ export class SessionsService {
   }
 
   async findAllForUser(userId: string, page = 1, limit = 20) {
-    const couple = await this.couplesService.getCoupleForUser(userId);
+    // Get all relationships for user (includes couples via backward compatibility)
+    const relationships = await this.relationshipsService.getRelationshipsForUser(userId, false);
+    const relationshipIds = relationships.map(r => r.id);
 
-    if (!couple) {
+    // Also try to get legacy couple
+    const couple = await this.couplesService.getCoupleForUser(userId);
+    const coupleId = couple?.id;
+
+    // Build query to find sessions from either relationships or couple
+    const whereClause: any = {
+      OR: []
+    };
+
+    if (relationshipIds.length > 0) {
+      whereClause.OR.push({ relationshipId: { in: relationshipIds } });
+    }
+
+    if (coupleId) {
+      whereClause.OR.push({ coupleId });
+    }
+
+    // If user has no relationships or couples, return empty
+    if (whereClause.OR.length === 0) {
       return { sessions: [], total: 0, page, limit };
     }
 
     const [sessions, total] = await Promise.all([
       this.prisma.session.findMany({
-        where: { coupleId: couple.id },
+        where: whereClause,
         include: {
+          relationship: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+            }
+          },
+          couple: {
+            select: {
+              id: true,
+              name: true,
+            }
+          },
           analysisResult: {
             select: {
               overallScore: true,
@@ -81,7 +151,7 @@ export class SessionsService {
         skip: (page - 1) * limit,
         take: limit,
       }),
-      this.prisma.session.count({ where: { coupleId: couple.id } }),
+      this.prisma.session.count({ where: whereClause }),
     ]);
 
     return { sessions, total, page, limit };
@@ -125,10 +195,26 @@ export class SessionsService {
     session: any;
     parsedChat: ParsedChat;
   }> {
-    const couple = await this.couplesService.getCoupleForUser(userId);
+    let relationshipId: string | null = null;
+    let coupleId: string | null = null;
 
-    if (!couple) {
-      throw new BadRequestException('Must be in a couple to import a chat');
+    // If relationshipId provided, use new system
+    if (dto.relationshipId) {
+      const relationship = await this.relationshipsService.getRelationshipById(
+        dto.relationshipId,
+        userId
+      );
+      if (!relationship) {
+        throw new BadRequestException('Relationship not found or access denied');
+      }
+      relationshipId = dto.relationshipId;
+    } else {
+      // Fallback: Try to get active romantic couple
+      const couple = await this.couplesService.getCoupleForUser(userId);
+      if (!couple) {
+        throw new BadRequestException('Must be in a couple or relationship to import a chat');
+      }
+      coupleId = couple.id;
     }
 
     // Parse the WhatsApp chat content
@@ -143,7 +229,8 @@ export class SessionsService {
     // Create session with UPLOADED status (ready for analysis, skip RECORDING/TRANSCRIBING)
     const session = await this.prisma.session.create({
       data: {
-        coupleId: couple.id,
+        coupleId,
+        relationshipId,
         initiatorId: userId,
         status: SessionStatus.UPLOADED,
         sourceType: SessionSourceType.WHATSAPP_CHAT,

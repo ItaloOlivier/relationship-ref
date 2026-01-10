@@ -48,7 +48,27 @@ const WEEKLY_QUEST_TEMPLATES = [
 export class QuestsService {
   constructor(private prisma: PrismaService) {}
 
-  async getActiveQuests(userId: string) {
+  /**
+   * Get all relationship IDs and couple IDs for a user
+   */
+  private async getUserRelationshipIds(userId: string): Promise<{
+    relationshipIds: string[];
+    coupleId: string | null;
+  }> {
+    // Get relationships
+    const relationships = await this.prisma.relationship.findMany({
+      where: {
+        members: {
+          some: {
+            userId,
+            leftAt: null
+          }
+        },
+        status: 'ACTIVE'
+      }
+    });
+
+    // Get couple
     const couple = await this.prisma.couple.findFirst({
       where: {
         OR: [
@@ -58,19 +78,52 @@ export class QuestsService {
       },
     });
 
-    if (!couple) {
+    return {
+      relationshipIds: relationships.map(r => r.id),
+      coupleId: couple?.id ?? null
+    };
+  }
+
+  async getActiveQuests(userId: string) {
+    const { relationshipIds, coupleId } = await this.getUserRelationshipIds(userId);
+
+    // Build query for quests across all relationships and couple
+    const whereClause: any = {
+      status: QuestStatus.ACTIVE,
+      OR: []
+    };
+
+    if (relationshipIds.length > 0) {
+      whereClause.OR.push({ relationshipId: { in: relationshipIds } });
+    }
+
+    if (coupleId) {
+      whereClause.OR.push({ coupleId });
+    }
+
+    if (whereClause.OR.length === 0) {
       return [];
     }
 
     const quests = await this.prisma.quest.findMany({
-      where: {
-        coupleId: couple.id,
-        status: QuestStatus.ACTIVE,
-      },
+      where: whereClause,
       include: {
         progress: {
           where: { userId },
         },
+        relationship: {
+          select: {
+            id: true,
+            name: true,
+            type: true
+          }
+        },
+        couple: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
       },
       orderBy: { expiresAt: 'asc' },
     });
@@ -166,6 +219,21 @@ export class QuestsService {
       },
     });
 
+    await this.processQuestProgress(activeQuests, userId, action);
+  }
+
+  async updateQuestProgressForRelationship(relationshipId: string, userId: string, action: string) {
+    const activeQuests = await this.prisma.quest.findMany({
+      where: {
+        relationshipId,
+        status: QuestStatus.ACTIVE,
+      },
+    });
+
+    await this.processQuestProgress(activeQuests, userId, action);
+  }
+
+  private async processQuestProgress(activeQuests: any[], userId: string, action: string) {
     for (const quest of activeQuests) {
       // Check if this action contributes to the quest
       if (this.questMatchesAction(quest.title, action)) {

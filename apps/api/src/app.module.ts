@@ -5,6 +5,7 @@ import { PrismaModule } from './common/prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { CouplesModule } from './couples/couples.module';
+import { RelationshipsModule } from './relationships/relationships.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { AnalysisModule } from './analysis/analysis.module';
 import { GamificationModule } from './gamification/gamification.module';
@@ -25,6 +26,7 @@ import { HealthController } from './health.controller';
     AuthModule,
     UsersModule,
     CouplesModule,
+    RelationshipsModule,
     SessionsModule,
     AnalysisModule,
     GamificationModule,

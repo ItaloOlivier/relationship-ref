@@ -65,7 +65,20 @@ flutter build ios     # Build iOS
   - Backward compatibility maintained (Couple model kept)
   - Successfully deployed to dev database
   - See `docs/EXPANSION_PLAN.md` for full specification
-- [ ] Phase 4: Service Layer Updates (Update CouplesService → RelationshipsService)
+- [x] **Phase 4: Service Layer Updates** (Completed 2026-01-10)
+  - Created [RelationshipsService](apps/api/src/relationships/relationships.service.ts) with full CRUD and lifecycle tracking
+  - Created [RelationshipsController](apps/api/src/relationships/relationships.controller.ts) with 6 REST endpoints
+  - Removed single-couple constraint - users can join multiple relationships
+  - Updated [SessionsService](apps/api/src/sessions/sessions.service.ts) to support both coupleId and relationshipId
+  - Updated [GamificationService](apps/api/src/gamification/gamification.service.ts) for multi-relationship quests
+  - Updated [QuestsService](apps/api/src/gamification/quests.service.ts) to query across all user relationships
+  - All services maintain backward compatibility with legacy Couple model
+  - **Key Methods:**
+    - `createRelationship()` - No single-couple constraint
+    - `joinRelationship()` - Multiple relationships allowed
+    - `getRelationshipsForUser()` - Returns array, not single couple
+    - `leaveRelationship()` - Soft delete with reason tracking
+    - `updateRelationshipStatus()` - Validates state transitions
 - [ ] Phase 5: Multi-Relationship UI & Features
 - [ ] Phase 6: WhatsApp Report Sharing
 - [ ] Phase 7: Type-Specific Coaching

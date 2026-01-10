@@ -21,4 +21,11 @@ export class ImportWhatsAppDto {
   @IsString()
   @IsOptional()
   fileName?: string;
+
+  @ApiPropertyOptional({
+    description: 'Relationship ID (if not provided, uses first active romantic couple)'
+  })
+  @IsString()
+  @IsOptional()
+  relationshipId?: string;
 }
