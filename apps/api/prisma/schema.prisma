@@ -20,32 +20,117 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  magicLinks       MagicLink[]
-  coupleAsPartner1 Couple[]          @relation("Partner1")
-  coupleAsPartner2 Couple[]          @relation("Partner2")
-  sessions         Session[]
-  bankEntries      EmotionalBankEntry[]
-  questProgress    QuestProgress[]
-  streaks          Streak[]
-  personalityProfile PersonalityProfile?
+  magicLinks               MagicLink[]
+  // Legacy couple relations
+  coupleAsPartner1         Couple[]                     @relation("Partner1")
+  coupleAsPartner2         Couple[]                     @relation("Partner2")
+  // New relationship relations
+  relationshipMemberships  RelationshipMember[]         @relation("RelationshipMemberships")
+  triggeredLifecycleEvents RelationshipLifecycleEvent[] @relation("TriggeredEvents")
+  // Other relations
+  sessions                 Session[]
+  bankEntries              EmotionalBankEntry[]
+  questProgress            QuestProgress[]
+  streaks                  Streak[]
+  personalityProfile       PersonalityProfile?
 
   @@map("users")
 }
 
 model MagicLink {
-  id        String   @id @default(cuid())
-  token     String   @unique
+  id        String    @id @default(cuid())
+  token     String    @unique
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@map("magic_links")
 }
 
 // ============================================================================
-// COUPLES
+// RELATIONSHIPS (Multi-type support)
+// ============================================================================
+
+enum RelationshipType {
+  ROMANTIC_COUPLE
+  ROMANTIC_POLYAMOROUS
+  FRIENDSHIP
+  FAMILY_PARENT_CHILD
+  FAMILY_SIBLINGS
+  FAMILY_EXTENDED
+  BUSINESS_COFOUNDERS
+  BUSINESS_TEAM
+  PROFESSIONAL_MANAGER_EMPLOYEE
+  PROFESSIONAL_PEERS
+  CUSTOM
+}
+
+enum RelationshipStatus {
+  ACTIVE
+  PAUSED // Taking a break, can resume
+  ENDED_MUTUAL // Breakup/parting ways
+  ENDED_UNILATERAL
+  ARCHIVED // Historical, read-only
+}
+
+model Relationship {
+  id         String             @id @default(cuid())
+  type       RelationshipType   @default(ROMANTIC_COUPLE)
+  status     RelationshipStatus @default(ACTIVE)
+  name       String? // Optional display name
+  inviteCode String             @unique
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  endedAt    DateTime? // When status changed to ENDED_*
+  endReason  String? // Freeform text explaining why ended
+
+  // Relations
+  members             RelationshipMember[]
+  sessions            Session[]                    @relation("RelationshipSessions")
+  emotionalBankLedger EmotionalBankLedger?         @relation("RelationshipBank")
+  weeklyReports       WeeklyReport[]               @relation("RelationshipReports")
+  quests              Quest[]                      @relation("RelationshipQuests")
+  relationshipDynamic RelationshipDynamic?         @relation("RelationshipDynamics")
+  lifecycleEvents     RelationshipLifecycleEvent[]
+
+  @@map("relationships")
+}
+
+model RelationshipMember {
+  id             String       @id @default(cuid())
+  relationshipId String
+  relationship   Relationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation("RelationshipMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  role           String? // Optional: "manager", "employee", "parent", "child"
+  joinedAt       DateTime     @default(now())
+  leftAt         DateTime? // When they left (if relationship ended)
+
+  @@unique([relationshipId, userId])
+  @@index([userId])
+  @@index([relationshipId])
+  @@map("relationship_members")
+}
+
+model RelationshipLifecycleEvent {
+  id                String       @id @default(cuid())
+  relationshipId    String
+  relationship      Relationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+  eventType         String // CREATED, MEMBER_JOINED, MEMBER_LEFT, PAUSED, RESUMED, ENDED_MUTUAL, ENDED_UNILATERAL, ARCHIVED
+  triggeredByUserId String?
+  triggeredBy       User?        @relation("TriggeredEvents", fields: [triggeredByUserId], references: [id], onDelete: SetNull)
+  reason            String? // Optional explanation
+  metadata          Json? // Additional context
+  createdAt         DateTime     @default(now())
+
+  @@index([relationshipId, createdAt])
+  @@map("relationship_lifecycle_events")
+}
+
+// ============================================================================
+// COUPLES (Legacy - kept for backward compatibility during migration)
 // ============================================================================
 
 model Couple {
@@ -55,16 +140,16 @@ model Couple {
   partner2Id String?
   partner1   User     @relation("Partner1", fields: [partner1Id], references: [id], onDelete: Cascade)
   partner2   User?    @relation("Partner2", fields: [partner2Id], references: [id], onDelete: SetNull)
-  name       String?  // Optional couple name
+  name       String? // Optional couple name
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   // Relations
-  sessions            Session[]
-  bankLedger          EmotionalBankLedger?
-  weeklyReports       WeeklyReport[]
-  quests              Quest[]
-  relationshipDynamic RelationshipDynamic?
+  sessions            Session[]            @relation("CoupleSessions")
+  bankLedger          EmotionalBankLedger? @relation("CoupleBank")
+  weeklyReports       WeeklyReport[]       @relation("CoupleReports")
+  quests              Quest[]              @relation("CoupleQuests")
+  relationshipDynamic RelationshipDynamic? @relation("CoupleDynamics")
 
   @@map("couples")
 }
@@ -83,29 +168,37 @@ enum SessionStatus {
 }
 
 enum SessionSourceType {
-  AUDIO           // Live recorded conversation
-  WHATSAPP_CHAT   // Imported from WhatsApp export
+  AUDIO // Live recorded conversation
+  WHATSAPP_CHAT // Imported from WhatsApp export
 }
 
 model Session {
-  id           String            @id @default(cuid())
-  coupleId     String
-  couple       Couple            @relation(fields: [coupleId], references: [id], onDelete: Cascade)
-  initiatorId  String
-  initiator    User              @relation(fields: [initiatorId], references: [id])
-  status       SessionStatus     @default(RECORDING)
-  sourceType   SessionSourceType @default(AUDIO)
-  durationSecs Int?
-  audioUrl     String?           // Only if user opted to retain audio
-  retainAudio  Boolean           @default(false)
-  transcript   String?           @db.Text
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id             String            @id @default(cuid())
+  // Support both legacy Couple and new Relationship
+  coupleId       String?
+  couple         Couple?           @relation("CoupleSessions", fields: [coupleId], references: [id], onDelete: Cascade)
+  relationshipId String?
+  relationship   Relationship?     @relation("RelationshipSessions", fields: [relationshipId], references: [id], onDelete: Cascade)
+  initiatorId    String
+  initiator      User              @relation(fields: [initiatorId], references: [id])
+  status         SessionStatus     @default(RECORDING)
+  sourceType     SessionSourceType @default(AUDIO)
+  durationSecs   Int?
+  audioUrl       String? // Only if user opted to retain audio
+  retainAudio    Boolean           @default(false)
+  transcript     String?           @db.Text
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 
   // WhatsApp import specific fields
-  importedFileName    String?    // Original filename of imported chat
-  importedMessageCount Int?      // Number of messages in imported chat
-  chatParticipants    String[]   // Names extracted from chat export
+  importedFileName     String? // Original filename of imported chat
+  importedMessageCount Int? // Number of messages in imported chat
+  chatParticipants     String[] // Names extracted from chat export
+
+  // WhatsApp sharing fields
+  shareToken       String?   @unique // Public share token
+  shareTokenExpiry DateTime? // When share link expires
+  shareEnabled     Boolean   @default(false)
 
   // Relations
   analysisResult      AnalysisResult?
@@ -113,6 +206,7 @@ model Session {
   linguisticSnapshots LinguisticSnapshot[]
 
   @@index([coupleId])
+  @@index([relationshipId])
   @@index([initiatorId])
   @@map("sessions")
 }
@@ -124,27 +218,27 @@ enum CardType {
 }
 
 model AnalysisResult {
-  id        String   @id @default(cuid())
-  sessionId String   @unique
-  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  sessionId String  @unique
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   // Scores
-  overallScore     Int      // 0-100
-  greenCardCount   Int      @default(0)
-  yellowCardCount  Int      @default(0)
-  redCardCount     Int      @default(0)
-  bankChange       Int      @default(0) // Net emotional bank change
+  overallScore    Int // 0-100
+  greenCardCount  Int @default(0)
+  yellowCardCount Int @default(0)
+  redCardCount    Int @default(0)
+  bankChange      Int @default(0) // Net emotional bank change
 
   // Detailed breakdown (JSON)
-  cards            Json     // Array of { type, reason, timestamp?, quote? }
-  horsemenDetected Json     // Array of detected horsemen patterns
-  repairAttempts   Json     // Array of repair attempts detected
+  cards            Json // Array of { type, reason, timestamp?, quote? }
+  horsemenDetected Json // Array of detected horsemen patterns
+  repairAttempts   Json // Array of repair attempts detected
   topicTags        String[] // Conversation topics
 
   // Coaching output
-  whatWentWell     String?  @db.Text
-  tryNextTime      String?  @db.Text
-  repairSuggestion String?  @db.Text
+  whatWentWell     String? @db.Text
+  tryNextTime      String? @db.Text
+  repairSuggestion String? @db.Text
 
   // Safety flag
   safetyFlagTriggered Boolean @default(false)
@@ -159,12 +253,15 @@ model AnalysisResult {
 // ============================================================================
 
 model EmotionalBankLedger {
-  id        String   @id @default(cuid())
-  coupleId  String   @unique
-  couple    Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
-  balance   Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String        @id @default(cuid())
+  // Support both legacy Couple and new Relationship
+  coupleId       String?       @unique
+  couple         Couple?       @relation("CoupleBank", fields: [coupleId], references: [id], onDelete: Cascade)
+  relationshipId String?       @unique
+  relationship   Relationship? @relation("RelationshipBank", fields: [relationshipId], references: [id], onDelete: Cascade)
+  balance        Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   entries EmotionalBankEntry[]
 
@@ -177,18 +274,18 @@ enum BankEntryType {
 }
 
 model EmotionalBankEntry {
-  id        String        @id @default(cuid())
+  id        String              @id @default(cuid())
   ledgerId  String
   ledger    EmotionalBankLedger @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
   sessionId String?
-  session   Session?      @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  session   Session?            @relation(fields: [sessionId], references: [id], onDelete: SetNull)
   userId    String?
-  user      User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user      User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
   type      BankEntryType
   amount    Int
   reason    String
-  category  String        // e.g., "appreciation", "contempt", etc.
-  createdAt DateTime      @default(now())
+  category  String // e.g., "appreciation", "contempt", etc.
+  createdAt DateTime            @default(now())
 
   @@index([ledgerId])
   @@map("emotional_bank_entries")
@@ -210,22 +307,26 @@ enum QuestStatus {
 }
 
 model Quest {
-  id          String      @id @default(cuid())
-  coupleId    String
-  couple      Couple      @relation(fields: [coupleId], references: [id], onDelete: Cascade)
-  type        QuestType
-  status      QuestStatus @default(ACTIVE)
-  title       String
-  description String
-  targetValue Int         @default(1) // e.g., "Complete 1 session"
-  rewardPoints Int        @default(10)
-  expiresAt   DateTime
-  createdAt   DateTime    @default(now())
-  completedAt DateTime?
+  id             String        @id @default(cuid())
+  // Support both legacy Couple and new Relationship
+  coupleId       String?
+  couple         Couple?       @relation("CoupleQuests", fields: [coupleId], references: [id], onDelete: Cascade)
+  relationshipId String?
+  relationship   Relationship? @relation("RelationshipQuests", fields: [relationshipId], references: [id], onDelete: Cascade)
+  type           QuestType
+  status         QuestStatus   @default(ACTIVE)
+  title          String
+  description    String
+  targetValue    Int           @default(1) // e.g., "Complete 1 session"
+  rewardPoints   Int           @default(10)
+  expiresAt      DateTime
+  createdAt      DateTime      @default(now())
+  completedAt    DateTime?
 
   progress QuestProgress[]
 
   @@index([coupleId])
+  @@index([relationshipId])
   @@map("quests")
 }
 
@@ -243,14 +344,14 @@ model QuestProgress {
 }
 
 model Streak {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  currentStreak Int     @default(0)
-  longestStreak Int     @default(0)
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentStreak    Int       @default(0)
+  longestStreak    Int       @default(0)
   lastActivityDate DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@unique([userId])
   @@map("streaks")
@@ -261,11 +362,14 @@ model Streak {
 // ============================================================================
 
 model WeeklyReport {
-  id        String   @id @default(cuid())
-  coupleId  String
-  couple    Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
-  weekStart DateTime
-  weekEnd   DateTime
+  id             String        @id @default(cuid())
+  // Support both legacy Couple and new Relationship
+  coupleId       String?
+  couple         Couple?       @relation("CoupleReports", fields: [coupleId], references: [id], onDelete: Cascade)
+  relationshipId String?
+  relationship   Relationship? @relation("RelationshipReports", fields: [relationshipId], references: [id], onDelete: Cascade)
+  weekStart      DateTime
+  weekEnd        DateTime
 
   // Summary stats
   sessionCount     Int
@@ -276,13 +380,14 @@ model WeeklyReport {
   averageScore     Float
 
   // Insights (JSON)
-  highlights       Json   // Array of positive highlights
-  areasToImprove   Json   // Array of areas needing work
-  weeklyTip        String? @db.Text
+  highlights     Json // Array of positive highlights
+  areasToImprove Json // Array of areas needing work
+  weeklyTip      String? @db.Text
 
   createdAt DateTime @default(now())
 
   @@unique([coupleId, weekStart])
+  @@unique([relationshipId, weekStart])
   @@map("weekly_reports")
 }
 
@@ -291,12 +396,12 @@ model WeeklyReport {
 // ============================================================================
 
 model ScoringConfig {
-  id       String @id @default(cuid())
-  category String @unique // e.g., "appreciation", "contempt"
-  points   Int
-  cardType CardType?
-  isActive Boolean @default(true)
-  updatedAt DateTime @updatedAt
+  id        String    @id @default(cuid())
+  category  String    @unique // e.g., "appreciation", "contempt"
+  points    Int
+  cardType  CardType?
+  isActive  Boolean   @default(true)
+  updatedAt DateTime  @updatedAt
 
   @@map("scoring_configs")
 }
@@ -318,51 +423,51 @@ enum AttachmentStyle {
 }
 
 enum CommunicationStyle {
-  PLACATER         // Agreeing, peace-keeping
-  BLAMER           // Attacking, defensive
-  COMPUTER         // Intellectual, detached
-  DISTRACTER       // Deflecting, avoiding
-  LEVELER          // Direct, authentic (healthy)
-  MIXED            // No dominant pattern
+  PLACATER // Agreeing, peace-keeping
+  BLAMER // Attacking, defensive
+  COMPUTER // Intellectual, detached
+  DISTRACTER // Deflecting, avoiding
+  LEVELER // Direct, authentic (healthy)
+  MIXED // No dominant pattern
 }
 
 model PersonalityProfile {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Big Five (OCEAN) - 0 to 100 scale
-  openness          Float?  // Curiosity, creativity, openness to experience
-  conscientiousness Float?  // Organization, dependability, self-discipline
-  extraversion      Float?  // Sociability, assertiveness, positive emotions
-  agreeableness     Float?  // Cooperation, trust, empathy
-  neuroticism       Float?  // Emotional instability, anxiety, moodiness
+  openness          Float? // Curiosity, creativity, openness to experience
+  conscientiousness Float? // Organization, dependability, self-discipline
+  extraversion      Float? // Sociability, assertiveness, positive emotions
+  agreeableness     Float? // Cooperation, trust, empathy
+  neuroticism       Float? // Emotional instability, anxiety, moodiness
 
   // Attachment Style
-  attachmentStyle   AttachmentStyle @default(UNDETERMINED)
-  attachmentAnxiety Float?  // 0-100: fear of abandonment
+  attachmentStyle     AttachmentStyle @default(UNDETERMINED)
+  attachmentAnxiety   Float? // 0-100: fear of abandonment
   attachmentAvoidance Float? // 0-100: discomfort with closeness
 
   // Communication Style (Satir model)
   communicationStyle CommunicationStyle @default(MIXED)
 
   // Emotional Intelligence indicators
-  emotionalAwareness Float?  // 0-100: recognition of own emotions
-  empathyScore       Float?  // 0-100: recognition of partner's emotions
+  emotionalAwareness  Float? // 0-100: recognition of own emotions
+  empathyScore        Float? // 0-100: recognition of partner's emotions
   emotionalRegulation Float? // 0-100: ability to manage emotional responses
 
   // Conflict patterns
-  conflictStyle      String?  // "avoiding", "accommodating", "competing", "compromising", "collaborating"
-  repairInitiation   Float?   // 0-100: tendency to initiate repairs
-  repairReceptivity  Float?   // 0-100: receptivity to partner's repairs
+  conflictStyle     String? // "avoiding", "accommodating", "competing", "compromising", "collaborating"
+  repairInitiation  Float? // 0-100: tendency to initiate repairs
+  repairReceptivity Float? // 0-100: receptivity to partner's repairs
 
   // Confidence scores for traits (how reliable the inference is)
-  confidenceScore    Float    @default(0)  // 0-100: overall confidence in profile
-  sessionsAnalyzed   Int      @default(0)  // Number of sessions used to build profile
+  confidenceScore  Float @default(0) // 0-100: overall confidence in profile
+  sessionsAnalyzed Int   @default(0) // Number of sessions used to build profile
 
   // AI-generated narrative descriptions
-  strengthsNarrative String?  @db.Text
-  growthAreasNarrative String? @db.Text
+  strengthsNarrative     String? @db.Text
+  growthAreasNarrative   String? @db.Text
   communicationNarrative String? @db.Text
 
   createdAt DateTime @default(now())
@@ -376,61 +481,61 @@ model PersonalityProfile {
 
 // Stores raw linguistic features per session for evolution tracking
 model LinguisticSnapshot {
-  id        String   @id @default(cuid())
+  id        String             @id @default(cuid())
   profileId String
   profile   PersonalityProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
   sessionId String
-  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session   Session            @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   // Participant identifier within session (e.g., "John" from WhatsApp)
   participantName String
 
   // Word counts and ratios
-  totalWords       Int
-  uniqueWords      Int
-  avgWordLength    Float
+  totalWords        Int
+  uniqueWords       Int
+  avgWordLength     Float
   avgSentenceLength Float
 
   // Pronoun usage (LIWC-style)
-  firstPersonSingular Float  // I, me, my - self-focus
-  firstPersonPlural   Float  // We, us, our - shared identity
-  secondPerson        Float  // You, your - other-focus
-  thirdPerson         Float  // He, she, they - distancing
+  firstPersonSingular Float // I, me, my - self-focus
+  firstPersonPlural   Float // We, us, our - shared identity
+  secondPerson        Float // You, your - other-focus
+  thirdPerson         Float // He, she, they - distancing
 
   // Emotional language
-  positiveEmotionWords Float  // love, happy, good
-  negativeEmotionWords Float  // hate, angry, bad
-  anxietyWords         Float  // worried, nervous, afraid
-  angerWords           Float  // angry, hate, furious
-  sadnessWords         Float  // sad, cry, disappointed
+  positiveEmotionWords Float // love, happy, good
+  negativeEmotionWords Float // hate, angry, bad
+  anxietyWords         Float // worried, nervous, afraid
+  angerWords           Float // angry, hate, furious
+  sadnessWords         Float // sad, cry, disappointed
 
   // Cognitive patterns
-  certaintyWords   Float  // always, never, definitely
-  tentativeWords   Float  // maybe, perhaps, might
-  discrepancyWords Float  // should, would, could (unmet expectations)
+  certaintyWords   Float // always, never, definitely
+  tentativeWords   Float // maybe, perhaps, might
+  discrepancyWords Float // should, would, could (unmet expectations)
 
   // Social dynamics
-  affiliationWords Float  // friend, together, share
-  achievementWords Float  // win, success, better
-  powerWords       Float  // control, force, superior
+  affiliationWords Float // friend, together, share
+  achievementWords Float // win, success, better
+  powerWords       Float // control, force, superior
 
   // Communication markers
-  questionFrequency Float  // Questions asked
+  questionFrequency    Float // Questions asked
   exclamationFrequency Float
-  hedgingPhrases   Float  // "I think", "I feel like", "sort of"
+  hedgingPhrases       Float // "I think", "I feel like", "sort of"
 
   // Gottman patterns detected in this session
-  criticismCount   Int @default(0)
-  contemptCount    Int @default(0)
+  criticismCount     Int @default(0)
+  contemptCount      Int @default(0)
   defensivenessCount Int @default(0)
-  stonewallingCount Int @default(0)
+  stonewallingCount  Int @default(0)
 
   // Repair attempts
-  repairAttemptCount Int @default(0)
-  repairSuccessRate Float?
+  repairAttemptCount Int    @default(0)
+  repairSuccessRate  Float?
 
   // Raw feature vector for ML (JSON blob)
-  featureVector    Json?
+  featureVector Json?
 
   createdAt DateTime @default(now())
 
@@ -439,30 +544,33 @@ model LinguisticSnapshot {
   @@map("linguistic_snapshots")
 }
 
-// Couple-level relationship dynamics
+// Relationship-level dynamics (supports couples and groups)
 model RelationshipDynamic {
-  id        String   @id @default(cuid())
-  coupleId  String   @unique
-  couple    Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  id             String        @id @default(cuid())
+  // Support both legacy Couple and new Relationship
+  coupleId       String?       @unique
+  couple         Couple?       @relation("CoupleDynamics", fields: [coupleId], references: [id], onDelete: Cascade)
+  relationshipId String?       @unique
+  relationship   Relationship? @relation("RelationshipDynamics", fields: [relationshipId], references: [id], onDelete: Cascade)
 
   // Interaction patterns
-  pursuerWithdrawer   Boolean?  // Is there a pursuer-withdrawer dynamic?
-  pursuerId           String?   // User ID of pursuer (if applicable)
+  pursuerWithdrawer Boolean? // Is there a pursuer-withdrawer dynamic?
+  pursuerId         String? // User ID of pursuer (if applicable)
 
   // Power balance
-  conversationDominance Json?   // { "user1Id": 55, "user2Id": 45 } talk time %
-  interruptionPattern   Json?   // Who interrupts whom more
-  topicInitiation       Json?   // Who starts conversations/topics
+  conversationDominance Json? // { "user1Id": 55, "user2Id": 45 } talk time %
+  interruptionPattern   Json? // Who interrupts whom more
+  topicInitiation       Json? // Who starts conversations/topics
 
   // Emotional reciprocity
-  emotionalReciprocity Float?   // 0-100: balance of emotional labor
-  validationBalance    Float?   // 0-100: mutual validation
-  supportBalance       Float?   // 0-100: mutual support offered
+  emotionalReciprocity Float? // 0-100: balance of emotional labor
+  validationBalance    Float? // 0-100: mutual validation
+  supportBalance       Float? // 0-100: mutual support offered
 
   // Conflict patterns
-  escalationTendency   Float?   // 0-100: how quickly conflicts escalate
-  deescalationSkill    Float?   // 0-100: ability to calm conflicts
-  resolutionRate       Float?   // 0-100: % of conflicts reaching resolution
+  escalationTendency Float? // 0-100: how quickly conflicts escalate
+  deescalationSkill  Float? // 0-100: ability to calm conflicts
+  resolutionRate     Float? // 0-100: % of conflicts reaching resolution
 
   // Gottman ratios
   positiveToNegativeRatio Float? // 5:1 is healthy target
@@ -472,12 +580,12 @@ model RelationshipDynamic {
   growthOpportunities   String[] // e.g., ["active listening", "emotional validation"]
 
   // AI-generated insights
-  dynamicNarrative      String?  @db.Text  // Accessible description of dynamics
-  coachingFocus         String?  @db.Text  // What to work on together
+  dynamicNarrative String? @db.Text // Accessible description of dynamics
+  coachingFocus    String? @db.Text // What to work on together
 
   // Confidence and data
-  confidenceScore       Float    @default(0)
-  sessionsAnalyzed      Int      @default(0)
+  confidenceScore  Float @default(0)
+  sessionsAnalyzed Int   @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

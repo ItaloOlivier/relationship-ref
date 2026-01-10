@@ -56,9 +56,22 @@ flutter build ios     # Build iOS
   - WhatsApp import with file parsing (already complete)
   - Home dashboard with live data (bank balance, streaks, quests, recent sessions)
   - **Total: 52 tests passing**
-- [ ] Phase 3: Gamification Layer (Most features already implemented)
-- [ ] Phase 4: Polish & Hardening
-- [ ] Phase 5: Personality Profiles (in progress)
+- [x] **Phase 3: Multi-Relationship Expansion - Database Foundation** (Completed 2026-01-10)
+  - Database schema migration: Relationship, RelationshipMember, RelationshipLifecycleEvent models
+  - 11 relationship types (romantic, friendship, family, business, professional)
+  - Variable group sizes (2-10 participants) via junction table
+  - Lifecycle tracking: ACTIVE → PAUSED → ENDED → ARCHIVED
+  - WhatsApp sharing fields (shareToken, shareTokenExpiry, shareEnabled)
+  - Backward compatibility maintained (Couple model kept)
+  - Successfully deployed to dev database
+  - See `docs/EXPANSION_PLAN.md` for full specification
+- [ ] Phase 4: Service Layer Updates (Update CouplesService → RelationshipsService)
+- [ ] Phase 5: Multi-Relationship UI & Features
+- [ ] Phase 6: WhatsApp Report Sharing
+- [ ] Phase 7: Type-Specific Coaching
+- [ ] Phase 8: Relationship Lifecycle Management
+- [ ] Phase 9: Polish & Hardening
+- [ ] Phase 10: Personality Profiles (in progress)
 
 ## Key Domain Concepts
 
