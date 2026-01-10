@@ -117,6 +117,15 @@ See [TestFlight Deployment Guide](docs/testflight-deployment.md) for complete iO
     - All cards, horsemen, and repair attempts now track speaker
     - Added 10 comprehensive tests for speaker attribution
     - All 259 tests pass (100% backward compatible)
+  - [x] Phase 6.3: Individual Score Calculation (2026-01-10)
+    - Added IndividualScore interface to ScoringResult with per-speaker metrics
+    - Implemented calculateIndividualScores() method in ScoringService
+    - Tracks per-speaker: greenCardCount, yellowCardCount, redCardCount, personalScore (0-100), bankContribution, horsemenUsed, repairAttemptCount
+    - Updated analyzeTranscript() to call individual score calculation
+    - Updated AnalysisService to store individualScores in database
+    - Added 12 comprehensive tests covering: two-speaker scenarios, card counting, bank contribution, personal scores, horsemen tracking, repair attempts, edge cases (solo/unattributed/duplicates)
+    - All 271 tests pass (12 new, 259 existing)
+    - Commit: [pending]
   - [ ] Relationship list/switcher in home screen
   - [ ] Individual scorecards per participant
   - [ ] Relationship directory (view all friends/business/partners)

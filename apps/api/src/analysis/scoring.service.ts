@@ -25,6 +25,18 @@ export interface RepairAttempt {
   speaker?: string;      // Who made the repair attempt
 }
 
+export interface IndividualScore {
+  userId?: string;                    // User ID if speaker was mapped
+  speaker: string;                    // Speaker name from transcript
+  greenCardCount: number;             // Number of green cards
+  yellowCardCount: number;            // Number of yellow cards
+  redCardCount: number;               // Number of red cards
+  personalScore: number;              // Individual score 0-100
+  bankContribution: number;           // Net contribution to emotional bank
+  horsemenUsed: string[];             // Which Four Horsemen they used
+  repairAttemptCount: number;         // Number of repair attempts made
+}
+
 export interface ScoringResult {
   cards: Card[];
   horsemenDetected: HorsemanDetection[];
@@ -32,6 +44,7 @@ export interface ScoringResult {
   bankChange: number;
   overallScore: number;
   safetyFlagTriggered: boolean;
+  individualScores: IndividualScore[]; // Per-speaker breakdowns
 }
 
 // Default scoring values (can be overridden by DB config)
@@ -298,6 +311,14 @@ export class ScoringService {
     const baseScore = 70;
     const adjustedScore = Math.max(0, Math.min(100, baseScore + bankChange));
 
+    // Calculate individual scores per speaker
+    const individualScores = this.calculateIndividualScores(
+      cards,
+      horsemenDetected,
+      repairAttempts,
+      await this.getScoreConfig(),
+    );
+
     return {
       cards,
       horsemenDetected,
@@ -305,7 +326,85 @@ export class ScoringService {
       bankChange,
       overallScore: adjustedScore,
       safetyFlagTriggered,
+      individualScores,
     };
+  }
+
+  /**
+   * Calculate per-speaker score breakdowns for individual accountability
+   */
+  private calculateIndividualScores(
+    cards: Card[],
+    horsemen: HorsemanDetection[],
+    repairs: RepairAttempt[],
+    scoreConfig: Record<string, { points: number; cardType?: CardType }>,
+  ): IndividualScore[] {
+    // Group cards by speaker
+    const speakerMap = new Map<string, IndividualScore>();
+
+    // Process cards
+    for (const card of cards) {
+      if (!card.speaker) continue; // Skip cards without speaker attribution
+
+      if (!speakerMap.has(card.speaker)) {
+        speakerMap.set(card.speaker, {
+          speaker: card.speaker,
+          userId: card.userId,
+          greenCardCount: 0,
+          yellowCardCount: 0,
+          redCardCount: 0,
+          personalScore: 0,
+          bankContribution: 0,
+          horsemenUsed: [],
+          repairAttemptCount: 0,
+        });
+      }
+
+      const score = speakerMap.get(card.speaker)!;
+
+      // Count cards by type
+      if (card.type === CardType.GREEN) {
+        score.greenCardCount++;
+      } else if (card.type === CardType.YELLOW) {
+        score.yellowCardCount++;
+      } else if (card.type === CardType.RED) {
+        score.redCardCount++;
+      }
+
+      // Add to bank contribution
+      const categoryConfig = scoreConfig[card.category];
+      if (categoryConfig) {
+        score.bankContribution += categoryConfig.points;
+      }
+    }
+
+    // Process horsemen
+    for (const horseman of horsemen) {
+      if (!horseman.speaker) continue;
+
+      const score = speakerMap.get(horseman.speaker);
+      if (score && !score.horsemenUsed.includes(horseman.type)) {
+        score.horsemenUsed.push(horseman.type);
+      }
+    }
+
+    // Process repair attempts
+    for (const repair of repairs) {
+      if (!repair.speaker) continue;
+
+      const score = speakerMap.get(repair.speaker);
+      if (score) {
+        score.repairAttemptCount++;
+      }
+    }
+
+    // Calculate personal scores (0-100) for each speaker
+    for (const score of speakerMap.values()) {
+      const baseScore = 70;
+      score.personalScore = Math.max(0, Math.min(100, baseScore + score.bankContribution));
+    }
+
+    return Array.from(speakerMap.values());
   }
 
   countCards(cards: Card[]): { green: number; yellow: number; red: number } {

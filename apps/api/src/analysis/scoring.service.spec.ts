@@ -270,4 +270,154 @@ describe('ScoringService', () => {
       expect(categories).toContain('appreciation');
     });
   });
+
+  describe('Individual Score Calculation', () => {
+    it('should calculate individual scores for two speakers', async () => {
+      const transcript = `John: Thank you for listening. I appreciate you.
+Sarah: You always say that. You never follow through.`;
+      const result = await service.analyzeTranscript(transcript);
+
+      expect(result.individualScores).toBeDefined();
+      expect(result.individualScores.length).toBe(2);
+
+      const johnScore = result.individualScores.find(s => s.speaker === 'John');
+      const sarahScore = result.individualScores.find(s => s.speaker === 'Sarah');
+
+      expect(johnScore).toBeDefined();
+      expect(sarahScore).toBeDefined();
+    });
+
+    it('should correctly count card types per speaker', async () => {
+      const transcript = `Alice: Thank you. I appreciate you.
+Bob: You're pathetic. You always mess up.`;
+      const result = await service.analyzeTranscript(transcript);
+
+      const aliceScore = result.individualScores.find(s => s.speaker === 'Alice');
+      const bobScore = result.individualScores.find(s => s.speaker === 'Bob');
+
+      expect(aliceScore?.greenCardCount).toBeGreaterThan(0);
+      expect(aliceScore?.yellowCardCount).toBe(0);
+      expect(aliceScore?.redCardCount).toBe(0);
+
+      expect(bobScore?.greenCardCount).toBe(0);
+      expect(bobScore?.yellowCardCount).toBeGreaterThan(0);
+      expect(bobScore?.redCardCount).toBeGreaterThan(0);
+    });
+
+    it('should calculate bank contribution per speaker', async () => {
+      const transcript = `Mike: Thank you so much. I'm sorry.
+Lisa: You never listen. You always do this.`;
+      const result = await service.analyzeTranscript(transcript);
+
+      const mikeScore = result.individualScores.find(s => s.speaker === 'Mike');
+      const lisaScore = result.individualScores.find(s => s.speaker === 'Lisa');
+
+      expect(mikeScore?.bankContribution).toBeGreaterThan(0);
+      expect(lisaScore?.bankContribution).toBeLessThan(0);
+    });
+
+    it('should calculate personal scores (0-100) per speaker', async () => {
+      const transcript = `Tom: Thank you. I appreciate you.
+Jerry: You're pathetic. You disgust me.`;
+      const result = await service.analyzeTranscript(transcript);
+
+      const tomScore = result.individualScores.find(s => s.speaker === 'Tom');
+      const jerryScore = result.individualScores.find(s => s.speaker === 'Jerry');
+
+      expect(tomScore?.personalScore).toBeGreaterThan(70); // Above baseline
+      expect(tomScore?.personalScore).toBeLessThanOrEqual(100);
+
+      expect(jerryScore?.personalScore).toBeLessThan(70); // Below baseline
+      expect(jerryScore?.personalScore).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should track horsemen usage per speaker', async () => {
+      const transcript = `Alex: You're pathetic and useless.
+Sam: It's not my fault. You're overreacting.`;
+      const result = await service.analyzeTranscript(transcript);
+
+      const alexScore = result.individualScores.find(s => s.speaker === 'Alex');
+      const samScore = result.individualScores.find(s => s.speaker === 'Sam');
+
+      expect(alexScore?.horsemenUsed).toContain('contempt');
+      expect(samScore?.horsemenUsed).toContain('defensiveness');
+    });
+
+    it('should count repair attempts per speaker', async () => {
+      const transcript = `Emma: You never listen to me!
+Oliver: I'm sorry. Let's start over. I love you.`;
+      const result = await service.analyzeTranscript(transcript);
+
+      const emmaScore = result.individualScores.find(s => s.speaker === 'Emma');
+      const oliverScore = result.individualScores.find(s => s.speaker === 'Oliver');
+
+      expect(emmaScore?.repairAttemptCount).toBe(0);
+      expect(oliverScore?.repairAttemptCount).toBeGreaterThan(0);
+    });
+
+    it('should handle solo sessions with one speaker', async () => {
+      const transcript = 'Chris: Thank you. I appreciate everything. You always help.';
+      const result = await service.analyzeTranscript(transcript);
+
+      expect(result.individualScores.length).toBe(1);
+      const chrisScore = result.individualScores[0];
+      expect(chrisScore.speaker).toBe('Chris');
+      expect(chrisScore.greenCardCount).toBeGreaterThan(0);
+    });
+
+    it('should exclude cards without speaker attribution from individual scores', async () => {
+      const transcript = 'Thank you for everything. You always help me.';
+      const result = await service.analyzeTranscript(transcript);
+
+      // Overall cards should exist
+      expect(result.cards.length).toBeGreaterThan(0);
+
+      // But no individual scores since no speakers identified
+      expect(result.individualScores.length).toBe(0);
+    });
+
+    it('should not duplicate horsemen in horsemenUsed array', async () => {
+      const transcript = `Karen: You're pathetic. You disgust me. You're so pathetic.`;
+      const result = await service.analyzeTranscript(transcript);
+
+      const karenScore = result.individualScores.find(s => s.speaker === 'Karen');
+      expect(karenScore).toBeDefined();
+
+      // Should only list 'contempt' once, not multiple times
+      const contemptCount = karenScore!.horsemenUsed.filter(h => h === 'contempt').length;
+      expect(contemptCount).toBe(1);
+    });
+
+    it('should sum individual contributions to match overall bank change', async () => {
+      const transcript = `Partner1: Thank you so much.
+Partner2: You never listen.`;
+      const result = await service.analyzeTranscript(transcript);
+
+      const totalIndividualContribution = result.individualScores.reduce(
+        (sum, score) => sum + score.bankContribution,
+        0
+      );
+
+      expect(totalIndividualContribution).toBe(result.bankChange);
+    });
+
+    it('should handle speakers with mixed behaviors', async () => {
+      const transcript = `Jordan: Thank you for trying. But you always say that. I'm sorry.`;
+      const result = await service.analyzeTranscript(transcript);
+
+      const jordanScore = result.individualScores.find(s => s.speaker === 'Jordan');
+      expect(jordanScore).toBeDefined();
+
+      // Should have both green and yellow cards
+      expect(jordanScore!.greenCardCount).toBeGreaterThan(0);
+      expect(jordanScore!.yellowCardCount).toBeGreaterThan(0);
+    });
+
+    it('should return empty individualScores array for empty transcript', async () => {
+      const transcript = '';
+      const result = await service.analyzeTranscript(transcript);
+
+      expect(result.individualScores).toEqual([]);
+    });
+  });
 });

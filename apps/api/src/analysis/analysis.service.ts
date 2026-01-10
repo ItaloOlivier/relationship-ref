@@ -97,6 +97,7 @@ export class AnalysisService {
           cards: scoringResult.cards as any,
           horsemenDetected: scoringResult.horsemenDetected as any,
           repairAttempts: scoringResult.repairAttempts as any,
+          individualScores: scoringResult.individualScores as any,
           topicTags,
           whatWentWell: coaching.whatWentWell,
           tryNextTime: coaching.tryNextTime,
