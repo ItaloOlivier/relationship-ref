@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_service.dart';
 import '../domain/personality_profile_model.dart';
@@ -57,11 +58,13 @@ final myPersonalityProfileProvider =
   final repository = ref.watch(personalityRepositoryProvider);
   try {
     return await repository.getMyProfile();
-  } catch (e) {
+  } on DioException catch (e) {
     // Return null if profile not found (404)
-    if (e.toString().contains('404') || e.toString().contains('not found')) {
+    if (e.response?.statusCode == 404) {
       return null;
     }
+    rethrow;
+  } catch (e) {
     rethrow;
   }
 });
@@ -78,11 +81,13 @@ final relationshipDynamicProvider =
   final repository = ref.watch(personalityRepositoryProvider);
   try {
     return await repository.getCoupleAnalysis();
-  } catch (e) {
+  } on DioException catch (e) {
     // Return null if not found (404)
-    if (e.toString().contains('404') || e.toString().contains('not found')) {
+    if (e.response?.statusCode == 404) {
       return null;
     }
+    rethrow;
+  } catch (e) {
     rethrow;
   }
 });
@@ -92,11 +97,13 @@ final coupleComparisonProvider = FutureProvider<CoupleComparison?>((ref) async {
   final repository = ref.watch(personalityRepositoryProvider);
   try {
     return await repository.getCoupleComparison();
-  } catch (e) {
+  } on DioException catch (e) {
     // Return null if not found (404)
-    if (e.toString().contains('404') || e.toString().contains('not found')) {
+    if (e.response?.statusCode == 404) {
       return null;
     }
+    rethrow;
+  } catch (e) {
     rethrow;
   }
 });
