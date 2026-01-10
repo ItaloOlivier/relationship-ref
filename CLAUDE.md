@@ -220,6 +220,12 @@ See [TestFlight Deployment Guide](docs/testflight-deployment.md) for complete iO
     - **Features:** SSR, Open Graph meta tags, dark mode, mobile responsive, privacy-first
     - **Configuration:** Tailwind CSS 3.4 + PostCSS, comprehensive README
     - Commits: 323efd4 (partial), 9da665d (complete)
+    - **Production Deployment Fix** (2026-01-10):
+      - Fixed TypeScript build errors preventing Railway deployment
+      - Changed `Session.user` to `Session.initiator` in relationships service (Session model has initiator relation, not user)
+      - Fixed PatternMetricsCache access: Use direct field access (topicFrequency, horsemenTrend, etc.) instead of non-existent `metrics` field
+      - All 296 backend tests passing, production build successful
+      - Commit: 8d27e68
   - [x] **Phase 3: Flutter Share UI Integration** (Completed 2026-01-10)
     - Added url_launcher ^6.2.5 package for deep linking
     - iOS/Android config: WhatsApp URL scheme support
