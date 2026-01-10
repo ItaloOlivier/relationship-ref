@@ -136,6 +136,17 @@ See [TestFlight Deployment Guide](docs/testflight-deployment.md) for complete iO
     - Health calculation: averages last 30 days sessions, calculates trend (improving/declining/stable), green card ratio
     - All endpoints verify user membership before returning data (ACL)
     - All 271 tests pass (no test changes needed, compilation verified)
+    - Commit: ab7674f
+  - [x] Phase 6.5: User Profile with Privacy ACL (2026-01-10)
+    - Added 2 new endpoints to UsersController
+    - GET /users/:userId/profile - View profile of any user you share a relationship with
+    - GET /users/:userId/profile-in-relationship/:relationshipId - View profile in specific relationship context
+    - Implemented 2 methods in UsersService: getUserProfileWithACL(), getUserProfileInRelationshipContext()
+    - ACL checks: both endpoints verify shared relationship membership before returning data
+    - Relationship-scoped metrics: aggregates individualScores from all sessions in that relationship only
+    - Returns: avgPersonalScore, total cards (green/yellow/red), unique horsemen used, total repair attempts
+    - Privacy-first: returns 404 if users don't share a relationship (prevents user enumeration)
+    - All 271 tests pass (no test changes needed, compilation verified)
     - Commit: [pending]
   - [ ] Relationship list/switcher in home screen
   - [ ] Individual scorecards per participant
