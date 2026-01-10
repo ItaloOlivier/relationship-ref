@@ -83,9 +83,9 @@ class SessionsResponse {
       sessions: (json['sessions'] as List<dynamic>)
           .map((e) => Session.fromJson(e as Map<String, dynamic>))
           .toList(),
-      total: json['total'] as int,
-      page: json['page'] as int,
-      limit: json['limit'] as int,
+      total: json['total'] as int? ?? 0,
+      page: json['page'] as int? ?? 1,
+      limit: json['limit'] as int? ?? 50,
     );
   }
 }

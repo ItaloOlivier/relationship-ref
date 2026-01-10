@@ -99,6 +99,9 @@ See `.env.example` files in each app directory.
 - [API Documentation](docs/api.md)
 - [Deployment Guide](docs/deployment.md)
 - [Privacy Policy](docs/privacy.md)
+- **[TestFlight Quick Start](docs/TESTFLIGHT_QUICK_START.md)** ⭐
+- [TestFlight Deployment Guide](docs/testflight-deployment.md)
+- [iOS Signing Setup](docs/ios-signing-setup.md)
 
 ## Development Phases
 

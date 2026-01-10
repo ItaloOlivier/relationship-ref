@@ -1,7 +1,7 @@
 name: relationship_referee
 description: "Relationship Referee - AI-powered relationship coaching"
 publish_to: 'none'
-version: 0.1.0+1
+version: 0.1.0+4
 
 environment:
   sdk: ^3.10.1

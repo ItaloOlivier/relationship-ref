@@ -103,11 +103,32 @@ See [TestFlight Deployment Guide](docs/testflight-deployment.md) for complete iO
     - [InsightsController](apps/api/src/insights/insights.controller.ts)
     - [InsightsScreen](apps/mobile/lib/features/insights/presentation/screens/insights_screen.dart)
     - [QAChatSection](apps/mobile/lib/features/session/presentation/widgets/qa_chat_section.dart)
-- [ ] Phase 6: Multi-Relationship UI & Features
-- [ ] Phase 7: WhatsApp Report Sharing
-- [ ] Phase 8: Type-Specific Coaching
-- [ ] Phase 9: Relationship Lifecycle Management
-- [ ] Phase 10: Polish & Hardening
+- [ ] **Phase 6: Multi-Relationship UI & Features**
+  - Relationship list/switcher in home screen
+  - Individual scorecards per participant
+  - Relationship directory (view all friends/business/partners)
+  - Cross-relationship personality comparison
+  - Type-specific UI themes (romantic vs business vs friendship)
+- [ ] **Phase 7: WhatsApp Report Sharing**
+  - Generate shareable report links
+  - PDF export with branding
+  - Privacy controls per relationship
+- [ ] **Phase 8: Type-Specific Coaching**
+  - Business relationship coaching (conflict resolution, negotiation)
+  - Friendship coaching (boundary setting, support patterns)
+  - Family coaching (generational communication, roles)
+  - Professional coaching (mentorship feedback, collaboration)
+- [ ] **Phase 9: Relationship Lifecycle Management**
+  - Pause/resume relationships
+  - Archive old relationships
+  - Relationship health trends over time
+  - Lifecycle event tracking (milestones, transitions)
+- [ ] **Phase 10: Polish & Hardening**
+  - Individual scorecards with speaker attribution
+  - Performance optimization
+  - Offline mode support
+  - Advanced analytics
+  - Accessibility improvements
 - [x] **Phase 11: Personality Profiles** (Completed 2026-01-10)
   - **Backend (NestJS):** Already complete - full REST API at `/personality/...`
   - **Frontend (Flutter):**
@@ -163,6 +184,313 @@ Sessions can come from two sources:
 
 Both types go through the same analysis pipeline and generate the same Match Report.
 
+## Relationship Directory (Phase 6)
+
+### Overview
+A centralized view to see all people you have relationships with across all relationship types.
+
+### Features
+1. **All Relationships View** (`/relationships`)
+   - Grouped by type: Romantic, Friends, Family, Business, Professional
+   - Quick stats per relationship (sessions, health score, last activity)
+   - Search/filter by name, type, or status
+
+2. **Relationship Detail View** (`/relationships/:id`)
+   - Participant list with avatars
+   - Shared session history
+   - Relationship health trend graph
+   - Quick actions: Start Session, View Insights, Share Report
+
+3. **Cross-Relationship Personality Comparison**
+   - Compare your personality profile across different relationships
+   - See how you communicate differently with friends vs business partners
+   - Identify patterns (e.g., "You use more repair attempts with family than friends")
+
+4. **Participant Profile View** (`/participants/:userId`)
+   - View personality profile of any relationship member
+   - Privacy-controlled: Only show data from shared sessions
+   - Communication style summary
+   - Shared sessions list
+
+### API Endpoints
+```
+GET  /relationships                    - List all user's relationships
+GET  /relationships/:id                - Get relationship details
+GET  /relationships/:id/members        - Get all participants
+GET  /relationships/:id/sessions       - Get shared sessions
+GET  /relationships/:id/insights       - Get relationship insights
+GET  /users/:id/personality-in/:relId  - Get user's personality in specific relationship context
+```
+
+### UI Components
+- **RelationshipCard**: Shows type icon, name, member count, health score
+- **RelationshipTypeFilter**: Chips to filter by type
+- **ParticipantAvatar**: Shows user avatar with role badge
+- **RelationshipHealthGauge**: Visual health indicator
+- **SessionTimelineWidget**: Chronological view of sessions
+
+### Privacy Controls
+- Users can only view profiles of people they share relationships with
+- Personality data limited to shared sessions only
+- Option to hide profile from relationship members
+- Per-relationship privacy settings (OPEN, MEMBERS_ONLY, PRIVATE)
+
+## Individual Scorecards (Phase 6 & Phase 10)
+
+### Problem Statement
+Currently, all cards and scores are aggregated at the session level. Users can't see:
+- **Who** got which cards
+- Individual contribution to emotional bank
+- Personal accountability for behaviors
+
+### Solution: Speaker-Attributed Cards
+
+#### Backend Changes
+
+1. **Update Card Interface** ([scoring.service.ts](apps/api/src/analysis/scoring.service.ts)):
+```typescript
+export interface Card {
+  type: CardType;
+  reason: string;
+  quote?: string;
+  category: string;
+  speaker?: string;      // NEW: Speaker name from transcript
+  userId?: string;       // NEW: Mapped user ID (if known)
+  timestamp?: Date;      // NEW: When in conversation (optional)
+}
+```
+
+2. **Enhanced Scoring Result**:
+```typescript
+export interface ScoringResult {
+  // Existing fields
+  cards: Card[];
+  horsemenDetected: HorsemanDetection[];
+  repairAttempts: RepairAttempt[];
+  bankChange: number;
+  overallScore: number;
+  safetyFlagTriggered: boolean;
+
+  // NEW: Individual breakdowns
+  individualScores: IndividualScore[];
+}
+
+export interface IndividualScore {
+  userId?: string;
+  speaker: string;
+  greenCardCount: number;
+  yellowCardCount: number;
+  redCardCount: number;
+  personalScore: number;        // 0-100 individual score
+  bankContribution: number;     // Net bank change from this person
+  horsemenUsed: string[];       // Which horsemen they used
+  repairAttemptCount: number;
+}
+```
+
+3. **Speaker Detection Logic**:
+```typescript
+// Parse speaker from transcript line
+function detectSpeaker(quote: string, transcript: string): string | null {
+  // Match pattern: "SpeakerName: quote text"
+  const lines = transcript.split('\n');
+  for (const line of lines) {
+    if (line.includes(quote)) {
+      const match = line.match(/^([^:]+):\s*(.+)$/);
+      if (match) {
+        return match[1].trim(); // Speaker name
+      }
+    }
+  }
+  return null;
+}
+```
+
+4. **User Mapping** (for WhatsApp imports):
+```typescript
+// Map speaker names to userIds using relationship members
+async function mapSpeakersToUsers(
+  speakers: string[],
+  relationshipId: string
+): Promise<Map<string, string>> {
+  const members = await getRelationshipMembers(relationshipId);
+  const mapping = new Map<string, string>();
+
+  for (const speaker of speakers) {
+    const member = members.find(m =>
+      m.user.name.toLowerCase() === speaker.toLowerCase()
+    );
+    if (member) {
+      mapping.set(speaker, member.userId);
+    }
+  }
+
+  return mapping;
+}
+```
+
+#### Frontend Changes (Flutter)
+
+1. **Individual Scorecard Widget**:
+```dart
+class IndividualScorecardSection extends StatelessWidget {
+  final List<IndividualScore> scores;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text('Individual Scorecards', style: titleLarge),
+        SizedBox(height: 16),
+        ...scores.map((score) => ScorecardCard(score: score)),
+      ],
+    );
+  }
+}
+
+class ScorecardCard extends StatelessWidget {
+  final IndividualScore score;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // Header: Avatar + Name + Personal Score
+            Row(
+              children: [
+                CircleAvatar(child: Text(score.speaker[0])),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(score.speaker, style: titleMedium),
+                      Text('Personal Score: ${score.personalScore}/100'),
+                    ],
+                  ),
+                ),
+                ScoreBadge(score: score.personalScore),
+              ],
+            ),
+            SizedBox(height: 12),
+
+            // Card counts
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                CardCountChip(
+                  icon: Icons.check_circle,
+                  count: score.greenCardCount,
+                  color: AppColors.success,
+                  label: 'Green',
+                ),
+                CardCountChip(
+                  icon: Icons.warning,
+                  count: score.yellowCardCount,
+                  color: AppColors.warning,
+                  label: 'Yellow',
+                ),
+                CardCountChip(
+                  icon: Icons.error,
+                  count: score.redCardCount,
+                  color: AppColors.error,
+                  label: 'Red',
+                ),
+              ],
+            ),
+
+            // Bank contribution
+            SizedBox(height: 12),
+            BankContributionBar(contribution: score.bankContribution),
+          ],
+        ),
+      ),
+    );
+  }
+}
+```
+
+2. **Report Screen Updates**:
+- Add "Individual Scorecards" tab alongside "Overview", "Cards", "Coaching"
+- Show side-by-side comparison of both participants
+- Highlight who contributed most to positive/negative patterns
+- Personal accountability messaging: "You used contempt 3 times"
+
+3. **Insights Integration**:
+- "Sarah uses more repair attempts than John (avg 5 vs 2)"
+- "John's criticism count decreased 40% over last 3 sessions"
+- "You both interrupt equally (4 times each)"
+
+### Database Changes
+
+**AnalysisResult table** (add JSON field):
+```prisma
+model AnalysisResult {
+  // ... existing fields ...
+
+  individualScores Json? // Array of IndividualScore objects
+}
+```
+
+**SessionCard table** (if we want granular storage):
+```prisma
+model SessionCard {
+  id         String   @id @default(cuid())
+  sessionId  String
+  session    Session  @relation(fields: [sessionId], references: [id])
+
+  type       CardType
+  reason     String
+  quote      String?
+  category   String
+
+  speaker    String?  // NEW
+  userId     String?  // NEW
+  timestamp  DateTime? // NEW
+
+  createdAt  DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([userId])
+}
+```
+
+### Testing Requirements
+
+1. **Unit Tests**:
+   - Speaker detection from transcript lines
+   - User mapping from speaker names
+   - Individual score calculation
+   - Edge cases: unknown speakers, system messages
+
+2. **Integration Tests**:
+   - Import WhatsApp chat with 2+ participants
+   - Verify cards attributed to correct speakers
+   - Verify individual scores calculated correctly
+
+3. **Widget Tests**:
+   - Individual scorecard displays correctly
+   - Side-by-side comparison layout
+   - Card count chips show accurate data
+
+### Migration Strategy
+
+1. **Phase 1 (Backend)**: Add speaker attribution to scoring service (backward compatible)
+2. **Phase 2 (Storage)**: Store individual scores in JSON field
+3. **Phase 3 (Frontend)**: Add individual scorecard UI
+4. **Phase 4 (Enhancement)**: Add historical tracking of individual improvement
+
+### Benefits
+
+1. **Personal Accountability**: Clear visibility into individual contribution
+2. **Fair Feedback**: No more "we both need to work on this" when only one person is the issue
+3. **Growth Tracking**: See your personal improvement over time
+4. **Relationship Balance**: Identify if one person is doing more emotional work
+5. **Coaching Precision**: AI can provide person-specific suggestions
+
 ## Testing Requirements
 
 - Unit tests for scoring engine
@@ -180,9 +508,22 @@ GET  /users/me            - Get current user
 PATCH /users/me           - Update profile
 DELETE /users/me          - Delete account
 
-POST /couples             - Create couple
-POST /couples/join        - Join via invite code
-GET  /couples/me          - Get current couple
+POST /couples             - Create couple (legacy)
+POST /couples/join        - Join via invite code (legacy)
+GET  /couples/me          - Get current couple (legacy)
+
+GET  /relationships                    - List all user's relationships
+POST /relationships                    - Create new relationship
+GET  /relationships/:id                - Get relationship details
+PATCH /relationships/:id               - Update relationship (name, status)
+POST /relationships/:id/join           - Join via invite code
+POST /relationships/:id/leave          - Leave relationship
+GET  /relationships/:id/members        - Get all participants
+GET  /relationships/:id/sessions       - Get shared sessions
+GET  /relationships/:id/insights       - Get relationship insights
+GET  /relationships/:id/health         - Get relationship health score
+GET  /users/:userId/profile            - Get user profile (if in shared relationship)
+GET  /users/:userId/personality-in/:relId  - Get personality in relationship context
 
 POST /sessions            - Start session
 GET  /sessions            - List sessions

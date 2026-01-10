@@ -147,19 +147,19 @@ class PersonalityApi {
 
   /// Get current user's personality profile
   Future<Map<String, dynamic>> getMyProfile() async {
-    final response = await _client.get('/personality/profile/me');
+    final response = await _client.get('/personality/me');
     return response.data;
   }
 
   /// Get another user's personality profile (must be in same couple)
   Future<Map<String, dynamic>> getUserProfile(String userId) async {
-    final response = await _client.get('/personality/profile/$userId');
+    final response = await _client.get('/personality/user/$userId');
     return response.data;
   }
 
   /// Get personality evolution over time for current user
   Future<List<dynamic>> getMyEvolution() async {
-    final response = await _client.get('/personality/evolution/me');
+    final response = await _client.get('/personality/evolution');
     return response.data;
   }
 
