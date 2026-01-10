@@ -61,7 +61,8 @@ enum QuestStatus {
 
 class Quest extends Equatable {
   final String id;
-  final String coupleId;
+  final String? coupleId;
+  final String? relationshipId;
   final QuestType type;
   final String title;
   final String description;
@@ -74,7 +75,8 @@ class Quest extends Equatable {
 
   const Quest({
     required this.id,
-    required this.coupleId,
+    this.coupleId,
+    this.relationshipId,
     required this.type,
     required this.title,
     required this.description,
@@ -89,7 +91,8 @@ class Quest extends Equatable {
   factory Quest.fromJson(Map<String, dynamic> json) {
     return Quest(
       id: json['id'] as String,
-      coupleId: json['coupleId'] as String,
+      coupleId: json['coupleId'] as String?,
+      relationshipId: json['relationshipId'] as String?,
       type: QuestType.fromString(json['type'] as String),
       title: json['title'] as String,
       description: json['description'] as String,

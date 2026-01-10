@@ -18,7 +18,8 @@ enum SessionStatus {
 
 class Session extends Equatable {
   final String id;
-  final String coupleId;
+  final String? coupleId;
+  final String? relationshipId;
   final String initiatorId;
   final SessionStatus status;
   final int? durationSecs;
@@ -30,7 +31,8 @@ class Session extends Equatable {
 
   const Session({
     required this.id,
-    required this.coupleId,
+    this.coupleId,
+    this.relationshipId,
     required this.initiatorId,
     required this.status,
     this.durationSecs,
@@ -44,7 +46,8 @@ class Session extends Equatable {
   factory Session.fromJson(Map<String, dynamic> json) {
     return Session(
       id: json['id'] as String,
-      coupleId: json['coupleId'] as String,
+      coupleId: json['coupleId'] as String?,
+      relationshipId: json['relationshipId'] as String?,
       initiatorId: json['initiatorId'] as String,
       status: SessionStatus.fromString(json['status'] as String),
       durationSecs: json['durationSecs'] as int?,
@@ -185,7 +188,7 @@ class AnalysisResult extends Equatable {
       cards: (json['cards'] as List<dynamic>)
           .map((e) => SessionCard.fromJson(e as Map<String, dynamic>))
           .toList(),
-      topicTags: (json['topicTags'] as List<dynamic>).cast<String>(),
+      topicTags: (json['topicTags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
       whatWentWell: json['whatWentWell'] as String?,
       tryNextTime: json['tryNextTime'] as String?,
       repairSuggestion: json['repairSuggestion'] as String?,
