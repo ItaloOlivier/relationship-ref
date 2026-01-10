@@ -78,6 +78,9 @@ dev_dependencies:
   # Testing
   mocktail: ^1.0.4
 
+  # App icon generation
+  flutter_launcher_icons: ^0.13.1
+
 flutter:
   uses-material-design: true
 
@@ -90,4 +93,13 @@ flutter:
     - assets/images/session/
     - assets/images/gamification/
     - assets/animations/
+    - assets/icon/
     - .env
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.svg"
+  adaptive_icon_background: "#6366F1"
+  adaptive_icon_foreground: "assets/icon/app_icon.svg"
+  remove_alpha_ios: true
