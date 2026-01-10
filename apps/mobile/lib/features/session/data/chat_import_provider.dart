@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
@@ -104,7 +105,7 @@ class ChatImportNotifier extends StateNotifier<ChatImportStatus> {
 
       // Read file content
       if (file.bytes != null) {
-        content = String.fromCharCodes(file.bytes!);
+        content = utf8.decode(file.bytes!, allowMalformed: true);
       } else if (file.path != null) {
         content = await File(file.path!).readAsString();
       }
