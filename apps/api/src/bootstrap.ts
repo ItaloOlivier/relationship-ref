@@ -50,8 +50,9 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   const port = process.env.PORT || 3000;
-  await app.listen(port);
-  logger.log(`Application running on port ${port}`);
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host);
+  logger.log(`Application running on ${host}:${port}`);
   logger.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.log(`Swagger docs available at /api/docs`);
 }
