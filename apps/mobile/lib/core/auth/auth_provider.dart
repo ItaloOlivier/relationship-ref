@@ -90,65 +90,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> requestMagicLink(String email) async {
+  Future<bool> register(String email, String password, {String? name}) async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      await _apiClient.post('/auth/magic-link', data: {'email': email});
-      state = state.copyWith(isLoading: false);
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Failed to send magic link. Please try again.',
-      );
-    }
-  }
+      final response = await _apiClient.post('/auth/register', data: {
+        'email': email,
+        'password': password,
+        if (name != null) 'name': name,
+      });
 
-  Future<bool> verifyMagicLink(String token) async {
-    state = state.copyWith(isLoading: true, error: null);
-
-    try {
-      final response = await _apiClient.get('/auth/verify?token=$token');
-      if (response.statusCode == 200) {
-        final accessToken = response.data['accessToken'] as String;
-        final user = User.fromJson(response.data['user']);
-
-        await _storage.write(key: 'access_token', value: accessToken);
-        _apiClient.setAuthToken(accessToken);
-
-        state = AuthState(
-          isAuthenticated: true,
-          accessToken: accessToken,
-          user: user,
-        );
-        return true;
-      } else {
-        state = state.copyWith(
-          isLoading: false,
-          error: 'Invalid or expired magic link.',
-        );
-        return false;
-      }
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Failed to verify magic link. Please try again.',
-      );
-      return false;
-    }
-  }
-
-  Future<void> logout() async {
-    await _storage.delete(key: 'access_token');
-    _apiClient.clearAuthToken();
-    state = const AuthState();
-  }
-
-  Future<bool> demoLogin() async {
-    state = state.copyWith(isLoading: true, error: null);
-
-    try {
-      final response = await _apiClient.post('/auth/demo');
       if (response.statusCode == 200 || response.statusCode == 201) {
         final accessToken = response.data['accessToken'] as String;
         final user = User.fromJson(response.data['user']);
@@ -165,17 +116,65 @@ class AuthNotifier extends StateNotifier<AuthState> {
       } else {
         state = state.copyWith(
           isLoading: false,
-          error: 'Demo login failed. Please try again.',
+          error: 'Registration failed. Please try again.',
+        );
+        return false;
+      }
+    } catch (e) {
+      String errorMessage = 'Registration failed. Please try again.';
+      if (e.toString().contains('409') || e.toString().contains('already')) {
+        errorMessage = 'Email already registered. Please login instead.';
+      }
+      state = state.copyWith(
+        isLoading: false,
+        error: errorMessage,
+      );
+      return false;
+    }
+  }
+
+  Future<bool> login(String email, String password) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final response = await _apiClient.post('/auth/login', data: {
+        'email': email,
+        'password': password,
+      });
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final accessToken = response.data['accessToken'] as String;
+        final user = User.fromJson(response.data['user']);
+
+        await _storage.write(key: 'access_token', value: accessToken);
+        _apiClient.setAuthToken(accessToken);
+
+        state = AuthState(
+          isAuthenticated: true,
+          accessToken: accessToken,
+          user: user,
+        );
+        return true;
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Invalid email or password.',
         );
         return false;
       }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Demo login failed. Please try again.',
+        error: 'Invalid email or password.',
       );
       return false;
     }
+  }
+
+  Future<void> logout() async {
+    await _storage.delete(key: 'access_token');
+    _apiClient.clearAuthToken();
+    state = const AuthState();
   }
 }
 

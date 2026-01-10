@@ -40,12 +40,20 @@ describe('WhatsApp Import (e2e)', () => {
 
     // Create test user and couple
     const user1 = await prisma.user.create({
-      data: { email: 'whatsapp-test-user1@example.com', name: 'Test User 1' },
+      data: {
+        email: 'whatsapp-test-user1@example.com',
+        name: 'Test User 1',
+        passwordHash: '$2b$10$rOvHPxfzO4iHsqRxNxCjKuGvJvSqsJJxXJlPtOLDrNuRvKgPAqWUy', // "password123"
+      },
     });
     testUserId = user1.id;
 
     const user2 = await prisma.user.create({
-      data: { email: 'whatsapp-test-user2@example.com', name: 'Test User 2' },
+      data: {
+        email: 'whatsapp-test-user2@example.com',
+        name: 'Test User 2',
+        passwordHash: '$2b$10$rOvHPxfzO4iHsqRxNxCjKuGvJvSqsJJxXJlPtOLDrNuRvKgPAqWUy', // "password123"
+      },
     });
 
     const couple = await prisma.couple.create({

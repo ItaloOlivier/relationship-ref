@@ -51,6 +51,7 @@ async function main() {
       create: {
         email: 'test@example.com',
         name: 'Test User',
+        passwordHash: '$2b$10$rOvHPxfzO4iHsqRxNxCjKuGvJvSqsJJxXJlPtOLDrNuRvKgPAqWUy', // "password123"
       },
     });
 

@@ -28,137 +28,163 @@ describe('AuthController (e2e)', () => {
 
   beforeEach(async () => {
     // Clean up test data
-    await prisma.magicLink.deleteMany({
-      where: { user: { email: { contains: 'test-e2e' } } },
-    });
     await prisma.user.deleteMany({
       where: { email: { contains: 'test-e2e' } },
     });
   });
 
   afterAll(async () => {
-    await prisma.magicLink.deleteMany({
-      where: { user: { email: { contains: 'test-e2e' } } },
-    });
     await prisma.user.deleteMany({
       where: { email: { contains: 'test-e2e' } },
     });
     await app.close();
   });
 
-  describe('POST /auth/magic-link', () => {
-    it('should create a magic link for new user', async () => {
+  describe('POST /auth/register', () => {
+    it('should register a new user', async () => {
       const response = await request(app.getHttpServer())
-        .post('/auth/magic-link')
-        .send({ email: 'test-e2e-new@example.com' })
+        .post('/auth/register')
+        .send({
+          email: 'test-e2e-new@example.com',
+          password: 'password123',
+          name: 'Test User',
+        })
         .expect(201);
 
-      expect(response.body.message).toContain('Magic link sent');
+      expect(response.body.accessToken).toBeDefined();
+      expect(response.body.user.email).toBe('test-e2e-new@example.com');
+      expect(response.body.user.name).toBe('Test User');
 
       // Verify user was created
       const user = await prisma.user.findUnique({
         where: { email: 'test-e2e-new@example.com' },
       });
       expect(user).toBeDefined();
+      expect(user?.passwordHash).toBeDefined();
     });
 
-    it('should create a magic link for existing user', async () => {
-      // Create user first
-      await prisma.user.create({
-        data: { email: 'test-e2e-existing@example.com' },
-      });
-
+    it('should register without name', async () => {
       const response = await request(app.getHttpServer())
-        .post('/auth/magic-link')
-        .send({ email: 'test-e2e-existing@example.com' })
+        .post('/auth/register')
+        .send({
+          email: 'test-e2e-noname@example.com',
+          password: 'password123',
+        })
         .expect(201);
 
-      expect(response.body.message).toContain('Magic link sent');
+      expect(response.body.accessToken).toBeDefined();
+      expect(response.body.user.email).toBe('test-e2e-noname@example.com');
+    });
+
+    it('should reject duplicate email', async () => {
+      // Register first user
+      await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          email: 'test-e2e-dup@example.com',
+          password: 'password123',
+        })
+        .expect(201);
+
+      // Try to register with same email
+      await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          email: 'test-e2e-dup@example.com',
+          password: 'password456',
+        })
+        .expect(409);
     });
 
     it('should reject invalid email', async () => {
       await request(app.getHttpServer())
-        .post('/auth/magic-link')
-        .send({ email: 'invalid-email' })
+        .post('/auth/register')
+        .send({
+          email: 'invalid-email',
+          password: 'password123',
+        })
         .expect(400);
     });
 
-    it('should reject empty email', async () => {
+    it('should reject short password', async () => {
       await request(app.getHttpServer())
-        .post('/auth/magic-link')
+        .post('/auth/register')
+        .send({
+          email: 'test-e2e-short@example.com',
+          password: '12345',
+        })
+        .expect(400);
+    });
+
+    it('should reject empty body', async () => {
+      await request(app.getHttpServer())
+        .post('/auth/register')
         .send({})
         .expect(400);
     });
   });
 
-  describe('GET /auth/verify', () => {
-    it('should verify valid magic link and return token', async () => {
-      // Create user and magic link
-      const user = await prisma.user.create({
-        data: { email: 'test-e2e-verify@example.com' },
-      });
+  describe('POST /auth/login', () => {
+    beforeEach(async () => {
+      // Create a test user for login tests
+      await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          email: 'test-e2e-login@example.com',
+          password: 'password123',
+          name: 'Login Test User',
+        });
+    });
 
-      const magicLink = await prisma.magicLink.create({
-        data: {
-          token: 'valid-test-token-123',
-          userId: user.id,
-          expiresAt: new Date(Date.now() + 15 * 60 * 1000),
-        },
-      });
-
+    it('should login with valid credentials', async () => {
       const response = await request(app.getHttpServer())
-        .get('/auth/verify')
-        .query({ token: magicLink.token })
-        .expect(200);
+        .post('/auth/login')
+        .send({
+          email: 'test-e2e-login@example.com',
+          password: 'password123',
+        })
+        .expect(201);
 
       expect(response.body.accessToken).toBeDefined();
-      expect(response.body.user.email).toBe('test-e2e-verify@example.com');
+      expect(response.body.user.email).toBe('test-e2e-login@example.com');
+      expect(response.body.user.name).toBe('Login Test User');
     });
 
-    it('should reject invalid token', async () => {
+    it('should reject wrong password', async () => {
       await request(app.getHttpServer())
-        .get('/auth/verify')
-        .query({ token: 'invalid-token' })
+        .post('/auth/login')
+        .send({
+          email: 'test-e2e-login@example.com',
+          password: 'wrongpassword',
+        })
         .expect(401);
     });
 
-    it('should reject expired token', async () => {
-      const user = await prisma.user.create({
-        data: { email: 'test-e2e-expired@example.com' },
-      });
-
-      await prisma.magicLink.create({
-        data: {
-          token: 'expired-test-token',
-          userId: user.id,
-          expiresAt: new Date(Date.now() - 1000), // Already expired
-        },
-      });
-
+    it('should reject non-existent email', async () => {
       await request(app.getHttpServer())
-        .get('/auth/verify')
-        .query({ token: 'expired-test-token' })
+        .post('/auth/login')
+        .send({
+          email: 'test-e2e-nonexistent@example.com',
+          password: 'password123',
+        })
         .expect(401);
     });
 
-    it('should reject already used token', async () => {
-      const user = await prisma.user.create({
-        data: { email: 'test-e2e-used@example.com' },
-      });
-
-      await prisma.magicLink.create({
-        data: {
-          token: 'used-test-token',
-          userId: user.id,
-          expiresAt: new Date(Date.now() + 15 * 60 * 1000),
-          usedAt: new Date(), // Already used
-        },
-      });
-
+    it('should reject invalid email format', async () => {
       await request(app.getHttpServer())
-        .get('/auth/verify')
-        .query({ token: 'used-test-token' })
-        .expect(401);
+        .post('/auth/login')
+        .send({
+          email: 'invalid-email',
+          password: 'password123',
+        })
+        .expect(400);
+    });
+
+    it('should reject empty body', async () => {
+      await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({})
+        .expect(400);
     });
   });
 });

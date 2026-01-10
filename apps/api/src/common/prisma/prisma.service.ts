@@ -26,7 +26,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     await this.analysisResult.deleteMany();
     await this.session.deleteMany();
     await this.couple.deleteMany();
-    await this.magicLink.deleteMany();
     await this.user.deleteMany();
   }
 }

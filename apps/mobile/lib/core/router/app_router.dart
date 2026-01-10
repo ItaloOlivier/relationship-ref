@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/auth/presentation/screens/auth_screen.dart';
-import '../../features/auth/presentation/screens/magic_link_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/session/presentation/screens/session_screen.dart';
 import '../../features/session/presentation/screens/chat_import_screen.dart';
@@ -46,16 +45,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/auth',
         name: 'auth',
         builder: (context, state) => const AuthScreen(),
-        routes: [
-          GoRoute(
-            path: 'magic-link',
-            name: 'magic-link',
-            builder: (context, state) {
-              final token = state.uri.queryParameters['token'];
-              return MagicLinkScreen(token: token);
-            },
-          ),
-        ],
       ),
       // Main app shell with bottom navigation
       StatefulShellRoute.indexedStack(

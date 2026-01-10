@@ -12,7 +12,11 @@ describe('CouplesController (e2e)', () => {
 
   const createTestUser = async (email: string) => {
     const user = await prisma.user.create({
-      data: { email, name: email.split('@')[0] },
+      data: {
+        email,
+        name: email.split('@')[0],
+        passwordHash: '$2b$10$rOvHPxfzO4iHsqRxNxCjKuGvJvSqsJJxXJlPtOLDrNuRvKgPAqWUy', // "password123"
+      },
     });
     const token = jwtService.sign({ sub: user.id, email: user.email });
     return { user, token };

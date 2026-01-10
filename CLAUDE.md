@@ -150,8 +150,8 @@ Both types go through the same analysis pipeline and generate the same Match Rep
 ## API Endpoints
 
 ```
-POST /auth/magic-link     - Request magic link
-GET  /auth/verify         - Verify magic link
+POST /auth/register       - Create account (email, password, name?)
+POST /auth/login          - Login (email, password)
 
 GET  /users/me            - Get current user
 PATCH /users/me           - Update profile
