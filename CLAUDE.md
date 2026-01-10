@@ -10,7 +10,7 @@ Relationship Referee is a privacy-first mobile app that helps couples improve co
 - **Backend**: NestJS with Prisma ORM
 - **Database**: PostgreSQL
 - **Queue**: BullMQ with Redis
-- **AI**: OpenAI Whisper (transcription) + GPT-4o-mini (coaching)
+- **AI**: OpenAI Whisper (transcription) + GPT-4o-mini (coaching) + Claude Sonnet 4 (Q&A)
 - **Hosting**: Railway
 
 ## Project Structure
@@ -79,12 +79,31 @@ flutter build ios     # Build iOS
     - `getRelationshipsForUser()` - Returns array, not single couple
     - `leaveRelationship()` - Soft delete with reason tracking
     - `updateRelationshipStatus()` - Validates state transitions
-- [ ] Phase 5: Multi-Relationship UI & Features
-- [ ] Phase 6: WhatsApp Report Sharing
-- [ ] Phase 7: Type-Specific Coaching
-- [ ] Phase 8: Relationship Lifecycle Management
-- [ ] Phase 9: Polish & Hardening
-- [ ] Phase 10: Personality Profiles (in progress)
+- [x] **Phase 5: Session Q&A & Cross-Session Pattern Recognition** (Completed 2026-01-10)
+  - **Backend (NestJS):**
+    - `SessionQAService`: AI-powered Q&A using Claude Sonnet 4 with full session context
+    - `PatternRecognitionService`: Automatic pattern detection algorithms
+    - `InsightsModule`: REST API for patterns and insights summary
+    - Pattern types: topic triggers, time patterns, improvement trends, horsemen trends, positive patterns
+    - Hooked into analysis pipeline for automatic metrics cache updates
+  - **Frontend (Flutter):**
+    - Q&A Chat Section integrated into report screen with suggested questions
+    - Insights Screen with 3 tabs (Patterns, Trends, Summary)
+    - Pattern Card with swipe-to-acknowledge/dismiss
+    - Insights Summary Card on home dashboard
+    - Route: `/home/insights`
+  - **Key Files:**
+    - [SessionQAService](apps/api/src/sessions/services/session-qa.service.ts)
+    - [PatternRecognitionService](apps/api/src/insights/pattern-recognition.service.ts)
+    - [InsightsController](apps/api/src/insights/insights.controller.ts)
+    - [InsightsScreen](apps/mobile/lib/features/insights/presentation/screens/insights_screen.dart)
+    - [QAChatSection](apps/mobile/lib/features/session/presentation/widgets/qa_chat_section.dart)
+- [ ] Phase 6: Multi-Relationship UI & Features
+- [ ] Phase 7: WhatsApp Report Sharing
+- [ ] Phase 8: Type-Specific Coaching
+- [ ] Phase 9: Relationship Lifecycle Management
+- [ ] Phase 10: Polish & Hardening
+- [ ] Phase 11: Personality Profiles (in progress)
 
 ## Key Domain Concepts
 
@@ -153,7 +172,61 @@ POST /sessions/import-whatsapp - Import WhatsApp chat export
 
 GET  /gamification/dashboard - Get stats
 GET  /gamification/quests    - Get active quests
+
+POST /sessions/:id/ask       - Ask a question about a session (Claude Sonnet 4)
+GET  /sessions/:id/questions - Get Q&A history for a session
+
+GET  /insights/summary       - Get insights summary (patterns, trends)
+GET  /insights/patterns      - Get detected patterns
+POST /insights/patterns/analyze - Trigger pattern analysis
+POST /insights/patterns/:id/acknowledge - Acknowledge a pattern
+POST /insights/patterns/:id/dismiss - Dismiss a pattern
 ```
+
+## Session Q&A
+
+### Overview
+Users can ask natural language questions about any analyzed session. The system uses Claude Sonnet 4 with full session context to provide insightful answers.
+
+### Example Questions
+- "Why did the fight start?"
+- "When did things escalate?"
+- "Show me examples of contempt"
+- "What could we have done differently?"
+- "What repair attempts did we make?"
+
+### Implementation
+- **Backend**: `SessionQAService` builds context from transcript, analysis, cards, and horsemen data
+- **Model**: Claude Sonnet 4 (`claude-sonnet-4-20250514`)
+- **Rate Limiting**: 5 questions per session per hour
+- **Storage**: Q&A history persisted in `SessionQuestion` model
+
+## Cross-Session Pattern Recognition
+
+### Overview
+The system automatically detects patterns across multiple sessions to provide actionable insights.
+
+### Pattern Types
+| Type | Description | Example |
+|------|-------------|---------|
+| `TOPIC_TRIGGER` | Topics that appear in low-score sessions | "4 of 6 arguments involved money" |
+| `TIME_PATTERN` | Score correlations with time of day/week | "Arguments after 9 PM have 60% more red cards" |
+| `BEHAVIOR_TREND` | Changes in specific behaviors over time | "Your repair attempts increased 40% this month" |
+| `HORSEMAN_TREND` | Four Horsemen frequency changes | "Criticism has decreased by 30% over 8 sessions" |
+| `POSITIVE_PATTERN` | Celebrations of good communication | "You've maintained a 5-session green streak!" |
+
+### Metrics Cache
+The `PatternMetricsCache` model stores aggregated metrics for fast pattern retrieval:
+- Topic frequency distribution
+- Hourly/weekday score distribution
+- Monthly score averages
+- Horsemen and repair attempt trends
+- Card ratio trends
+
+### Flutter Integration
+- **Insights Screen**: 3-tab view at `/home/insights` (Patterns, Trends, Summary)
+- **Home Dashboard**: Summary card appears when 2+ sessions exist
+- **Pattern Actions**: Swipe to acknowledge or dismiss patterns
 
 ## Personality Profiles
 
