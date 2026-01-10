@@ -33,6 +33,9 @@ model User {
   questProgress            QuestProgress[]
   streaks                  Streak[]
   personalityProfile       PersonalityProfile?
+  // Q&A and insights
+  sessionQuestions         SessionQuestion[]
+  patternInsights          PatternInsight[]
 
   @@map("users")
 }
@@ -94,6 +97,9 @@ model Relationship {
   quests              Quest[]                      @relation("RelationshipQuests")
   relationshipDynamic RelationshipDynamic?         @relation("RelationshipDynamics")
   lifecycleEvents     RelationshipLifecycleEvent[]
+  // Pattern recognition
+  patternInsights     PatternInsight[]             @relation("RelationshipPatterns")
+  patternMetrics      PatternMetricsCache?         @relation("RelationshipPatternMetrics")
 
   @@map("relationships")
 }
@@ -150,6 +156,9 @@ model Couple {
   weeklyReports       WeeklyReport[]       @relation("CoupleReports")
   quests              Quest[]              @relation("CoupleQuests")
   relationshipDynamic RelationshipDynamic? @relation("CoupleDynamics")
+  // Pattern recognition
+  patternInsights     PatternInsight[]     @relation("CouplePatterns")
+  patternMetrics      PatternMetricsCache? @relation("CouplePatternMetrics")
 
   @@map("couples")
 }
@@ -209,6 +218,7 @@ model Session {
   analysisResult      AnalysisResult?
   bankEntries         EmotionalBankEntry[]
   linguisticSnapshots LinguisticSnapshot[]
+  questions           SessionQuestion[]
 
   @@index([coupleId])
   @@index([relationshipId])
@@ -596,4 +606,119 @@ model RelationshipDynamic {
   updatedAt DateTime @updatedAt
 
   @@map("relationship_dynamics")
+}
+
+// ============================================================================
+// SESSION Q&A (Ask questions about specific sessions)
+// ============================================================================
+
+model SessionQuestion {
+  id        String  @id @default(cuid())
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  question         String @db.Text // User's question about the session
+  answer           String @db.Text // AI-generated answer
+  referencedQuotes Json?  // Array of { text, speaker?, context? }
+  referencedCards  Json?  // Referenced card data from analysis
+
+  processingTimeMs Int? // Time to generate answer in ms
+  tokensUsed       Int? // Claude tokens used
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId, createdAt])
+  @@index([userId])
+  @@map("session_questions")
+}
+
+// ============================================================================
+// PATTERN RECOGNITION & INSIGHTS
+// ============================================================================
+
+enum PatternType {
+  TOPIC_TRIGGER // "4 of 6 arguments involved money"
+  TIME_PATTERN // "Arguments after 9 PM have 60% more red cards"
+  BEHAVIOR_TREND // "Repair attempts increased 40% this month"
+  HORSEMAN_TREND // "Contempt decreased over last 4 sessions"
+  COMMUNICATION_STYLE // "You tend to withdraw when discussing work"
+  POSITIVE_PATTERN // "Weekend conversations score 20% higher"
+}
+
+model PatternInsight {
+  id             String        @id @default(cuid())
+  // Support both legacy Couple and new Relationship
+  coupleId       String?
+  couple         Couple?       @relation("CouplePatterns", fields: [coupleId], references: [id], onDelete: Cascade)
+  relationshipId String?
+  relationship   Relationship? @relation("RelationshipPatterns", fields: [relationshipId], references: [id], onDelete: Cascade)
+  userId         String? // Optional: for user-specific insights
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Pattern classification
+  patternType PatternType
+  category    String // e.g., "topic_trigger", "time_pattern", "improvement"
+
+  // Pattern content
+  title       String // Human-readable title
+  description String @db.Text // Detailed explanation
+  evidence    Json // Supporting data (sessions, quotes, stats)
+
+  // Metrics
+  confidence    Float // 0-100: How confident we are in this pattern
+  impact        String // LOW, MEDIUM, HIGH, CRITICAL
+  sessionsCount Int // Number of sessions used to identify pattern
+
+  // State
+  acknowledged Boolean @default(false) // User has seen this
+  dismissed    Boolean @default(false) // User dismissed this
+
+  // Time bounds
+  firstOccurrence DateTime?
+  lastOccurrence  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([coupleId, patternType])
+  @@index([relationshipId, patternType])
+  @@index([userId])
+  @@map("pattern_insights")
+}
+
+// Cached aggregated metrics for quick pattern retrieval
+model PatternMetricsCache {
+  id             String        @id @default(cuid())
+  // Support both legacy Couple and new Relationship (one or the other)
+  coupleId       String?       @unique
+  couple         Couple?       @relation("CouplePatternMetrics", fields: [coupleId], references: [id], onDelete: Cascade)
+  relationshipId String?       @unique
+  relationship   Relationship? @relation("RelationshipPatternMetrics", fields: [relationshipId], references: [id], onDelete: Cascade)
+
+  // Topic aggregation
+  topicFrequency Json // { "money": 12, "work": 8, "children": 5 }
+  topicScores    Json // { "money": { avg: 45, count: 12 }, ... }
+
+  // Time distribution
+  hourlyDistribution  Json // { "9": { count: 2, avgScore: 72 }, "20": { count: 5, avgScore: 58 } }
+  weekdayDistribution Json // { "monday": { count: 3, avgScore: 70 }, "saturday": { count: 7, avgScore: 78 } }
+
+  // Monthly trends
+  monthlyScores Json // { "2026-01": { avg: 72, count: 5, greenCards: 15, redCards: 3 } }
+
+  // Horsemen trends over time
+  horsemenTrend Json // { "2026-01": { criticism: 5, contempt: 2, ... } }
+
+  // Repair attempt trends
+  repairAttemptTrend Json // { "2026-01": { count: 12, avgPerSession: 3 } }
+
+  // Card ratio trends
+  cardRatioTrend Json // { "2026-01": { green: 15, yellow: 8, red: 3 } }
+
+  lastUpdated   DateTime @default(now())
+  sessionsCount Int      @default(0)
+
+  @@map("pattern_metrics_cache")
 }

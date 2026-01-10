@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/auth/auth_provider.dart';
+import '../../../../core/ui/skeleton_loading.dart';
 import '../../../gamification/data/gamification_repository.dart';
 import '../../../session/data/session_repository.dart';
 import '../../../session/domain/session_model.dart';
@@ -152,12 +153,7 @@ class _EmotionalBankCard extends ConsumerWidget {
           ),
         );
       },
-      loading: () => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      ),
+      loading: () => const EmotionalBankSkeleton(),
       error: (_, __) => Card(
         child: Padding(
           padding: const EdgeInsets.all(20),
