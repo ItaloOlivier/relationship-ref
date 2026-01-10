@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/auth/auth_provider.dart';
+import '../../../gamification/data/gamification_repository.dart';
+import '../../../session/data/session_repository.dart';
+import '../../../session/domain/session_model.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -28,7 +32,8 @@ class HomeScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          // TODO: Refresh dashboard data
+          ref.invalidate(dashboardProvider);
+          ref.invalidate(sessionsProvider);
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -80,135 +85,217 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _EmotionalBankCard extends StatelessWidget {
+class _EmotionalBankCard extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
-    // TODO: Get real data from provider
-    const balance = 42;
-    const isPositive = balance >= 0;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dashboardAsync = ref.watch(dashboardProvider);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return dashboardAsync.when(
+      data: (dashboard) {
+        final balance = dashboard.emotionalBankBalance;
+        final isPositive = balance >= 0;
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.account_balance_wallet_rounded,
-                  color: AppColors.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Love Bank',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  isPositive ? '+$balance' : '$balance',
-                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                    color: isPositive
-                        ? AppColors.bankPositive
-                        : AppColors.bankNegative,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    'points',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppColors.textSecondary,
+                Row(
+                  children: [
+                    Icon(
+                      Icons.account_balance_wallet_rounded,
+                      color: AppColors.primary,
                     ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Love Bank',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      isPositive ? '+$balance' : '$balance',
+                      style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                            color: isPositive
+                                ? AppColors.bankPositive
+                                : AppColors.bankNegative,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(width: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        'points',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                LinearProgressIndicator(
+                  value: ((balance + 100) / 200).clamp(0.0, 1.0),
+                  backgroundColor: AppColors.border,
+                  valueColor: AlwaysStoppedAnimation(
+                    isPositive ? AppColors.bankPositive : AppColors.bankNegative,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: (balance + 100) / 200, // Scale from -100 to 100
-              backgroundColor: AppColors.border,
-              valueColor: AlwaysStoppedAnimation(
-                isPositive ? AppColors.bankPositive : AppColors.bankNegative,
+          ),
+        );
+      },
+      loading: () => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+      error: (_, __) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.account_balance_wallet_rounded, color: AppColors.primary),
+                  const SizedBox(width: 8),
+                  Text('Love Bank', style: Theme.of(context).textTheme.titleMedium),
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Text('0 points', style: Theme.of(context).textTheme.displayMedium),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _StreakCard extends StatelessWidget {
+class _StreakCard extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
-    // TODO: Get real data from provider
-    const streak = 7;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dashboardAsync = ref.watch(dashboardProvider);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            const Icon(
-              Icons.local_fire_department_rounded,
-              color: Colors.orange,
-              size: 32,
+    return dashboardAsync.when(
+      data: (dashboard) {
+        final streak = dashboard.streak;
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                const Icon(
+                  Icons.local_fire_department_rounded,
+                  color: Colors.orange,
+                  size: 32,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '$streak',
+                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                Text(
+                  'Day Streak',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              '$streak',
-              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              'Day Streak',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
+          ),
+        );
+      },
+      loading: () => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+      error: (_, __) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              const Icon(Icons.local_fire_department_rounded, color: Colors.orange, size: 32),
+              const SizedBox(height: 8),
+              Text('0', style: Theme.of(context).textTheme.headlineLarge),
+              Text('Day Streak', style: Theme.of(context).textTheme.bodyMedium),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _QuestsCard extends StatelessWidget {
+class _QuestsCard extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
-    // TODO: Get real data from provider
-    const completed = 2;
-    const total = 3;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dashboardAsync = ref.watch(dashboardProvider);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            const Icon(
-              Icons.emoji_events_rounded,
-              color: AppColors.yellowCard,
-              size: 32,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '$completed/$total',
-              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                fontWeight: FontWeight.bold,
+    return dashboardAsync.when(
+      data: (dashboard) {
+        final completed = dashboard.activeQuests.where((q) => q.isCompleted).length;
+        final total = dashboard.activeQuests.length;
+
+        return Card(
+          child: InkWell(
+            onTap: () => context.push('/gamification'),
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.emoji_events_rounded,
+                    color: AppColors.yellowCard,
+                    size: 32,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    total > 0 ? '$completed/$total' : '0',
+                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  Text(
+                    'Quests Today',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
               ),
             ),
-            Text(
-              'Quests Today',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
+          ),
+        );
+      },
+      loading: () => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+      error: (_, __) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              const Icon(Icons.emoji_events_rounded, color: AppColors.yellowCard, size: 32),
+              const SizedBox(height: 8),
+              Text('0', style: Theme.of(context).textTheme.headlineLarge),
+              Text('Quests Today', style: Theme.of(context).textTheme.bodyMedium),
+            ],
+          ),
         ),
       ),
     );
@@ -252,16 +339,16 @@ class _StartSessionButton extends StatelessWidget {
                       Text(
                         'Start Coach Session',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Record and analyze a conversation',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.8),
-                        ),
+                              color: Colors.white.withValues(alpha: 0.8),
+                            ),
                       ),
                     ],
                   ),
@@ -296,61 +383,123 @@ class _ImportChatButton extends StatelessWidget {
   }
 }
 
-class _RecentSessionsList extends StatelessWidget {
+class _RecentSessionsList extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
-    // TODO: Get real data from provider
-    final sessions = <Map<String, dynamic>>[]; // Empty for now
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sessionsAsync = ref.watch(sessionsProvider((page: 1, limit: 3)));
 
-    if (sessions.isEmpty) {
-      return Card(
+    return sessionsAsync.when(
+      data: (response) {
+        final sessions = response.sessions;
+
+        if (sessions.isEmpty) {
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.chat_bubble_outline_rounded,
+                      size: 48,
+                      color: AppColors.textSecondary,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No sessions yet',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Start your first coach session!',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          children: [
+            ...sessions.take(3).map((session) => _SessionListItem(session: session)),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => context.push('/history'),
+              child: const Text('View All Sessions'),
+            ),
+          ],
+        );
+      },
+      loading: () => Card(
         child: Padding(
           padding: const EdgeInsets.all(32),
-          child: Center(
-            child: Column(
-              children: [
-                Icon(
-                  Icons.chat_bubble_outline_rounded,
-                  size: 48,
-                  color: AppColors.textSecondary,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No sessions yet',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Start your first coach session!',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          child: Center(child: CircularProgressIndicator()),
         ),
-      );
-    }
-
-    return Column(
-      children: sessions.map((session) {
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-              child: const Icon(Icons.mic, color: AppColors.primary),
-            ),
-            title: Text('Session ${session['id']}'),
-            subtitle: Text('${session['date']}'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/report/${session['id']}'),
-          ),
-        );
-      }).toList(),
+      ),
+      error: (error, __) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text('Failed to load sessions'),
+        ),
+      ),
     );
+  }
+}
+
+class _SessionListItem extends StatelessWidget {
+  final Session session;
+
+  const _SessionListItem({required this.session});
+
+  @override
+  Widget build(BuildContext context) {
+    final score = session.analysisResult?.overallScore;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+          child: score != null
+              ? Text(
+                  '$score',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )
+              : Icon(Icons.mic, color: AppColors.primary),
+        ),
+        title: Text(_formatDate(session.createdAt)),
+        subtitle: Text(
+          session.status == SessionStatus.completed
+              ? '${(session.durationSecs ?? 0) ~/ 60} min session'
+              : 'Processing...',
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => context.push('/report/${session.id}'),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+
+    if (diff.inDays == 0) {
+      return 'Today ${DateFormat('h:mm a').format(date)}';
+    } else if (diff.inDays == 1) {
+      return 'Yesterday';
+    } else if (diff.inDays < 7) {
+      return '${diff.inDays} days ago';
+    } else {
+      return DateFormat('MMM d').format(date);
+    }
   }
 }
