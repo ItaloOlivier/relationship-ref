@@ -117,3 +117,18 @@ export class SessionsController {
     };
   }
 }
+
+  @Post(':id/audio')
+  @ApiOperation({ summary: 'Upload audio file for session' })
+  @ApiParam({ name: 'id', description: 'Session ID' })
+  @ApiResponse({ status: 200, description: 'Audio uploaded successfully' })
+  async uploadAudio(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() body: { audioUrl: string },
+  ) {
+    return this.sessionsService.update(id, req.user.id, {
+      audioUrl: body.audioUrl,
+      status: 'UPLOADED',
+    });
+  }
