@@ -92,11 +92,19 @@ class SessionsApi {
     return response.data;
   }
 
-  Future<Map<String, dynamic>> getSessions({int page = 1, int limit = 20}) async {
-    final response = await _client.get('/sessions', queryParameters: {
+  Future<Map<String, dynamic>> getSessions({
+    int page = 1,
+    int limit = 20,
+    String? relationshipId,
+  }) async {
+    final queryParams = {
       'page': page.toString(),
       'limit': limit.toString(),
-    });
+    };
+    if (relationshipId != null) {
+      queryParams['relationshipId'] = relationshipId;
+    }
+    final response = await _client.get('/sessions', queryParameters: queryParams);
     return response.data;
   }
 
@@ -157,13 +165,25 @@ class GamificationApi {
   final ApiClient _client;
   GamificationApi(this._client);
 
-  Future<Map<String, dynamic>> getDashboard() async {
-    final response = await _client.get('/gamification/dashboard');
+  Future<Map<String, dynamic>> getDashboard({String? relationshipId}) async {
+    final queryParams = relationshipId != null
+        ? {'relationshipId': relationshipId}
+        : null;
+    final response = await _client.get(
+      '/gamification/dashboard',
+      queryParameters: queryParams,
+    );
     return response.data;
   }
 
-  Future<List<dynamic>> getQuests() async {
-    final response = await _client.get('/gamification/quests');
+  Future<List<dynamic>> getQuests({String? relationshipId}) async {
+    final queryParams = relationshipId != null
+        ? {'relationshipId': relationshipId}
+        : null;
+    final response = await _client.get(
+      '/gamification/quests',
+      queryParameters: queryParams,
+    );
     return response.data;
   }
 }

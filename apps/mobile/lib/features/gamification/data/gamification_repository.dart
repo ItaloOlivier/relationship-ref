@@ -7,13 +7,13 @@ class GamificationRepository {
 
   GamificationRepository(this._gamificationApi);
 
-  Future<GamificationDashboard> getDashboard() async {
-    final data = await _gamificationApi.getDashboard();
+  Future<GamificationDashboard> getDashboard({String? relationshipId}) async {
+    final data = await _gamificationApi.getDashboard(relationshipId: relationshipId);
     return GamificationDashboard.fromJson(data);
   }
 
-  Future<List<Quest>> getActiveQuests() async {
-    final List<dynamic> data = await _gamificationApi.getQuests();
+  Future<List<Quest>> getActiveQuests({String? relationshipId}) async {
+    final List<dynamic> data = await _gamificationApi.getQuests(relationshipId: relationshipId);
     return data
         .map((e) => Quest.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -24,14 +24,16 @@ final gamificationRepositoryProvider = Provider<GamificationRepository>((ref) {
   return GamificationRepository(ref.watch(gamificationApiProvider));
 });
 
-/// Provider for the gamification dashboard
-final dashboardProvider = FutureProvider<GamificationDashboard>((ref) async {
+/// Provider for the gamification dashboard (optionally filtered by relationship)
+/// Pass relationshipId to get data for specific relationship, or null for all relationships
+final dashboardProvider = FutureProvider.family<GamificationDashboard, String?>((ref, relationshipId) async {
   final repository = ref.watch(gamificationRepositoryProvider);
-  return repository.getDashboard();
+  return repository.getDashboard(relationshipId: relationshipId);
 });
 
-/// Provider for active quests
-final questsProvider = FutureProvider<List<Quest>>((ref) async {
+/// Provider for active quests (optionally filtered by relationship)
+/// Pass relationshipId to get quests for specific relationship, or null for all relationships
+final questsProvider = FutureProvider.family<List<Quest>, String?>((ref, relationshipId) async {
   final repository = ref.watch(gamificationRepositoryProvider);
-  return repository.getActiveQuests();
+  return repository.getActiveQuests(relationshipId: relationshipId);
 });

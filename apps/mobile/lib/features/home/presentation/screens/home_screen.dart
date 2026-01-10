@@ -12,6 +12,7 @@ import '../../../session/domain/session_model.dart';
 import '../../../insights/data/insights_repository.dart';
 import '../../../insights/presentation/widgets/insights_summary_card.dart';
 import '../../../relationship/presentation/widgets/relationship_switcher.dart';
+import '../../../relationship/presentation/providers/selected_relationship_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -20,6 +21,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
     final user = authState.user;
+    final selectedRelationshipId = ref.watch(selectedRelationshipIdProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -37,8 +39,8 @@ class HomeScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(dashboardProvider);
-          ref.invalidate(sessionsProvider);
+          ref.invalidate(dashboardProvider(selectedRelationshipId));
+          ref.invalidate(sessionsProvider((page: 1, limit: 3)));
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -101,7 +103,8 @@ class HomeScreen extends ConsumerWidget {
 class _EmotionalBankCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final dashboardAsync = ref.watch(dashboardProvider);
+    final selectedRelationshipId = ref.watch(selectedRelationshipIdProvider);
+    final dashboardAsync = ref.watch(dashboardProvider(selectedRelationshipId));
 
     return dashboardAsync.when(
       data: (dashboard) {
@@ -228,7 +231,8 @@ class _StreakCardState extends ConsumerState<_StreakCard> {
 
   @override
   Widget build(BuildContext context) {
-    final dashboardAsync = ref.watch(dashboardProvider);
+    final selectedRelationshipId = ref.watch(selectedRelationshipIdProvider);
+    final dashboardAsync = ref.watch(dashboardProvider(selectedRelationshipId));
 
     return dashboardAsync.when(
       data: (dashboard) {
@@ -282,7 +286,8 @@ class _StreakCardState extends ConsumerState<_StreakCard> {
 class _QuestsCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final dashboardAsync = ref.watch(dashboardProvider);
+    final selectedRelationshipId = ref.watch(selectedRelationshipIdProvider);
+    final dashboardAsync = ref.watch(dashboardProvider(selectedRelationshipId));
 
     return dashboardAsync.when(
       data: (dashboard) {
