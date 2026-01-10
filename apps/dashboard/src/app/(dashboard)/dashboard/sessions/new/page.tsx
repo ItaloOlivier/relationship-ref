@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
+import { useRelationshipStore } from '@/lib/relationship-store';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
@@ -13,6 +14,7 @@ export default function NewSessionPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialType = searchParams?.get('type') as SessionType || 'audio';
+  const { activeRelationshipId } = useRelationshipStore();
 
   const [sessionType, setSessionType] = useState<SessionType>(initialType);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -50,8 +52,8 @@ export default function NewSessionPage() {
       let session;
 
       if (sessionType === 'audio') {
-        // Create session
-        session = await api.createSession();
+        // Create session with active relationship
+        session = await api.createSession(activeRelationshipId || undefined);
 
         // Upload audio
         await api.uploadAudio(session.id, selectedFile);

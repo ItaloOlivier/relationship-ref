@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { useRelationshipStore } from '@/lib/relationship-store';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import type { Pattern } from '@/types';
@@ -19,16 +20,17 @@ export default function InsightsPage() {
   const [summary, setSummary] = useState<InsightsSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'patterns' | 'trends' | 'summary'>('patterns');
+  const { activeRelationshipId } = useRelationshipStore();
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [activeRelationshipId]);
 
   const loadData = async () => {
     try {
       const [patternsData, summaryData] = await Promise.all([
-        api.getPatterns(),
-        api.getInsightsSummary(),
+        api.getPatterns(activeRelationshipId || undefined),
+        api.getInsightsSummary(activeRelationshipId || undefined),
       ]);
 
       setPatterns(patternsData);

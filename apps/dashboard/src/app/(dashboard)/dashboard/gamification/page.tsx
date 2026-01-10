@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { useRelationshipStore } from '@/lib/relationship-store';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import type { GamificationStats, Quest } from '@/types';
 
@@ -9,16 +10,17 @@ export default function GamificationPage() {
   const [stats, setStats] = useState<GamificationStats | null>(null);
   const [quests, setQuests] = useState<Quest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { activeRelationshipId } = useRelationshipStore();
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [activeRelationshipId]);
 
   const loadData = async () => {
     try {
       const [statsData, questsData] = await Promise.all([
-        api.getGamificationStats(),
-        api.getQuests(),
+        api.getGamificationStats(activeRelationshipId || undefined),
+        api.getQuests(activeRelationshipId || undefined),
       ]);
       setStats(statsData);
       setQuests(questsData);

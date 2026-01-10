@@ -153,8 +153,9 @@ class ApiClient {
   }
 
   // Sessions
-  async getSessions(): Promise<Session[]> {
-    return this.request<Session[]>('/sessions');
+  async getSessions(relationshipId?: string): Promise<Session[]> {
+    const params = relationshipId ? `?relationshipId=${relationshipId}` : '';
+    return this.request<Session[]>(`/sessions${params}`);
   }
 
   async getSession(id: string): Promise<Session> {
@@ -244,12 +245,14 @@ class ApiClient {
   }
 
   // Gamification
-  async getGamificationStats(): Promise<GamificationStats> {
-    return this.request<GamificationStats>('/gamification/dashboard');
+  async getGamificationStats(relationshipId?: string): Promise<GamificationStats> {
+    const params = relationshipId ? `?relationshipId=${relationshipId}` : '';
+    return this.request<GamificationStats>(`/gamification/dashboard${params}`);
   }
 
-  async getQuests(): Promise<Quest[]> {
-    return this.request<Quest[]>('/gamification/quests');
+  async getQuests(relationshipId?: string): Promise<Quest[]> {
+    const params = relationshipId ? `?relationshipId=${relationshipId}` : '';
+    return this.request<Quest[]>(`/gamification/quests${params}`);
   }
 
   // Relationships
@@ -299,12 +302,14 @@ class ApiClient {
   }
 
   // Insights
-  async getInsightsSummary(): Promise<any> {
-    return this.request('/insights/summary');
+  async getInsightsSummary(relationshipId?: string): Promise<any> {
+    const params = relationshipId ? `?relationshipId=${relationshipId}` : '';
+    return this.request(`/insights/summary${params}`);
   }
 
-  async getPatterns(): Promise<Pattern[]> {
-    return this.request<Pattern[]>('/insights/patterns');
+  async getPatterns(relationshipId?: string): Promise<Pattern[]> {
+    const params = relationshipId ? `?relationshipId=${relationshipId}` : '';
+    return this.request<Pattern[]>(`/insights/patterns${params}`);
   }
 
   async acknowledgePattern(patternId: string): Promise<void> {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { useRelationshipStore } from '@/lib/relationship-store';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
@@ -12,17 +13,18 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<GamificationStats | null>(null);
   const [recentSessions, setRecentSessions] = useState<Session[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { activeRelationshipId } = useRelationshipStore();
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [activeRelationshipId]);
 
   const loadData = async () => {
     try {
       const [userData, statsData, sessionsData] = await Promise.all([
         api.getCurrentUser(),
-        api.getGamificationStats(),
-        api.getSessions(),
+        api.getGamificationStats(activeRelationshipId || undefined),
+        api.getSessions(activeRelationshipId || undefined),
       ]);
 
       setUser(userData);

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { useRelationshipStore } from '@/lib/relationship-store';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -18,10 +19,11 @@ export default function SessionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('ALL');
   const [sourceFilter, setSourceFilter] = useState<FilterSource>('ALL');
+  const { activeRelationshipId } = useRelationshipStore();
 
   useEffect(() => {
     loadSessions();
-  }, []);
+  }, [activeRelationshipId]);
 
   useEffect(() => {
     applyFilters();
@@ -29,7 +31,7 @@ export default function SessionsPage() {
 
   const loadSessions = async () => {
     try {
-      const data = await api.getSessions();
+      const data = await api.getSessions(activeRelationshipId || undefined);
       setSessions(data);
     } catch (error) {
       console.error('Failed to load sessions:', error);

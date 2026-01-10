@@ -1,6 +1,7 @@
 'use client';
 
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { RelationshipSwitcher } from '@/components/relationship/RelationshipSwitcher';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -73,6 +74,11 @@ export default function DashboardLayout({
 
         {/* Main content */}
         <div className="flex flex-col flex-1 overflow-hidden">
+          {/* Top bar with relationship switcher */}
+          <div className="flex-shrink-0 flex items-center justify-end px-6 py-4 border-b bg-card">
+            <RelationshipSwitcher />
+          </div>
+
           <main className="flex-1 relative overflow-y-auto focus:outline-none">
             <div className="py-6">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
