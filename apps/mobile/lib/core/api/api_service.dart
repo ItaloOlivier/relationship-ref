@@ -206,3 +206,79 @@ final gamificationApiProvider = Provider<GamificationApi>((ref) {
 final personalityApiProvider = Provider<PersonalityApi>((ref) {
   return PersonalityApi(ref.watch(apiClientProvider));
 });
+
+// Relationships API
+class RelationshipsApi {
+  final ApiClient _client;
+  RelationshipsApi(this._client);
+
+  Future<List<dynamic>> getRelationships({bool includeEnded = false}) async {
+    final queryParams = includeEnded ? {'includeEnded': 'true'} : null;
+    final response = await _client.get('/relationships', queryParameters: queryParams);
+    return response.data as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getRelationshipById(String id) async {
+    final response = await _client.get('/relationships/$id');
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> createRelationship({
+    required String type,
+    String? name,
+  }) async {
+    final response = await _client.post('/relationships', data: {
+      'type': type,
+      if (name != null) 'name': name,
+    });
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> joinRelationship({
+    required String inviteCode,
+    String? role,
+  }) async {
+    final response = await _client.post('/relationships/join', data: {
+      'inviteCode': inviteCode,
+      if (role != null) 'role': role,
+    });
+    return response.data;
+  }
+
+  Future<void> leaveRelationship(String id, {String? reason}) async {
+    await _client.post('/relationships/$id/leave', data: {
+      if (reason != null) 'reason': reason,
+    });
+  }
+
+  Future<Map<String, dynamic>> updateRelationshipStatus(
+    String id, {
+    required String status,
+    String? reason,
+  }) async {
+    final response = await _client.patch('/relationships/$id/status', data: {
+      'status': status,
+      if (reason != null) 'reason': reason,
+    });
+    return response.data;
+  }
+
+  Future<List<dynamic>> getRelationshipMembers(String id) async {
+    final response = await _client.get('/relationships/$id/members');
+    return response.data as List<dynamic>;
+  }
+
+  Future<List<dynamic>> getRelationshipSessions(String id) async {
+    final response = await _client.get('/relationships/$id/sessions');
+    return response.data as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getRelationshipHealth(String id) async {
+    final response = await _client.get('/relationships/$id/health');
+    return response.data;
+  }
+}
+
+final relationshipsApiProvider = Provider<RelationshipsApi>((ref) {
+  return RelationshipsApi(ref.watch(apiClientProvider));
+});
