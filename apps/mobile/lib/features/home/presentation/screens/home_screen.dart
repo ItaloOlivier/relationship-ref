@@ -341,7 +341,7 @@ class _StartSessionButton extends StatelessWidget {
       child: Card(
         color: AppColors.primary,
         child: InkWell(
-          onTap: () => context.push('/session'),
+          onTap: () => context.push('/home/session'),
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -402,7 +402,7 @@ class _ImportChatButton extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton.icon(
-        onPressed: () => context.push('/import-chat'),
+        onPressed: () => context.push('/home/import-chat'),
         icon: const Icon(Icons.chat_bubble_outline),
         label: const Text('Import WhatsApp Chat'),
         style: OutlinedButton.styleFrom(
@@ -508,7 +508,7 @@ class _SessionListItem extends StatelessWidget {
               : 'Processing...',
         ),
         trailing: const Icon(Icons.chevron_right),
-        onTap: () => context.push('/report/${session.id}'),
+        onTap: () => context.push('/history/report/${session.id}'),
       ),
     );
   }

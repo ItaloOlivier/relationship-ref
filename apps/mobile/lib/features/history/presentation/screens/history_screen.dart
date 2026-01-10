@@ -81,7 +81,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             ElevatedButton.icon(
-              onPressed: () => context.push('/session'),
+              onPressed: () => context.push('/home/session'),
               icon: const Icon(Icons.mic),
               label: const Text('Start Session'),
             ),
@@ -155,7 +155,7 @@ class _SessionCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: () => context.push('/report/${session.id}'),
+        onTap: () => context.push('/history/report/${session.id}'),
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),

@@ -439,7 +439,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
             onPressed: () {
               final sessionId = status.sessionId ?? 'session-unknown';
               ref.read(recordingProvider.notifier).reset();
-              context.go('/report/$sessionId');
+              context.go('/history/report/$sessionId');
             },
             child: const Text('View Match Report'),
           ),

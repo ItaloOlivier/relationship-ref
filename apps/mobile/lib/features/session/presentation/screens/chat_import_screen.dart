@@ -342,7 +342,7 @@ class ChatImportScreen extends ConsumerWidget {
             onPressed: () {
               final sessionId = status.sessionId ?? 'session-unknown';
               ref.read(chatImportProvider.notifier).reset();
-              context.go('/report/$sessionId');
+              context.go('/history/report/$sessionId');
             },
             child: const Text('View Match Report'),
           ),
