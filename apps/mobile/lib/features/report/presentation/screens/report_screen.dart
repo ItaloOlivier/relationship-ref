@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/skeleton_loading.dart';
 import '../../../session/domain/session_model.dart';
 import '../../../session/data/session_repository.dart';
 
@@ -31,7 +32,7 @@ class ReportScreen extends ConsumerWidget {
       ),
       body: sessionAsync.when(
         data: (session) => _buildReport(context, session),
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const ReportSkeleton(),
         error: (error, stack) => _buildError(context, error),
       ),
     );

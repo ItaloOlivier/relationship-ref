@@ -212,12 +212,7 @@ class _StreakCard extends ConsumerWidget {
           ),
         );
       },
-      loading: () => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      ),
+      loading: () => const StatCardSkeleton(),
       error: (_, __) => Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -275,12 +270,7 @@ class _QuestsCard extends ConsumerWidget {
           ),
         );
       },
-      loading: () => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      ),
+      loading: () => const StatCardSkeleton(),
       error: (_, __) => Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -432,12 +422,7 @@ class _RecentSessionsList extends ConsumerWidget {
           ],
         );
       },
-      loading: () => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      ),
+      loading: () => const RecentSessionsSkeleton(),
       error: (error, __) => Card(
         child: Padding(
           padding: const EdgeInsets.all(16),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/skeleton_loading.dart';
 import '../../data/gamification_repository.dart';
 import '../../domain/gamification_model.dart';
 
@@ -17,7 +18,7 @@ class GamificationScreen extends ConsumerWidget {
       ),
       body: dashboardAsync.when(
         data: (dashboard) => _buildDashboard(context, ref, dashboard),
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const GamificationDashboardSkeleton(),
         error: (error, stack) => _buildError(context, ref, error),
       ),
     );

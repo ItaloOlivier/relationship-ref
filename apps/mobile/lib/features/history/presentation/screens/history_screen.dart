@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/skeleton_loading.dart';
 import '../../../session/data/session_repository.dart';
 import '../../../session/domain/session_model.dart';
 
@@ -39,7 +40,7 @@ class HistoryScreen extends ConsumerWidget {
             ),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const SessionHistorySkeleton(),
         error: (error, stack) => _ErrorState(
           error: error.toString(),
           onRetry: () => ref.invalidate(sessionsProvider),
