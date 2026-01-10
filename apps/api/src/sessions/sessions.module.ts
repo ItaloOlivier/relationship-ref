@@ -5,6 +5,7 @@ import { SessionQAService } from './services/session-qa.service';
 import { CouplesModule } from '@/couples/couples.module';
 import { RelationshipsModule } from '@/relationships/relationships.module';
 import { AnalysisModule } from '@/analysis/analysis.module';
+import { ShareEventsModule } from '@/share-events/share-events.module';
 import { WhatsAppParserService } from './services/whatsapp-parser.service';
 import { VoiceNoteMatchingService } from './services/voice-note-matching.service';
 
@@ -12,6 +13,7 @@ import { VoiceNoteMatchingService } from './services/voice-note-matching.service
   imports: [
     CouplesModule,
     RelationshipsModule,
+    ShareEventsModule,
     forwardRef(() => AnalysisModule),
   ],
   controllers: [SessionsController],

@@ -14,7 +14,7 @@ datasource db {
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
-  passwordHash String   // bcrypt hashed password
+  passwordHash String // bcrypt hashed password
   name         String?
   avatarUrl    String?
   createdAt    DateTime @default(now())
@@ -39,7 +39,6 @@ model User {
 
   @@map("users")
 }
-
 
 // ============================================================================
 // RELATIONSHIPS (Multi-type support)
@@ -194,9 +193,9 @@ model Session {
   chatParticipants     String[] // Names extracted from chat export
 
   // WhatsApp voice notes specific fields
-  voiceNoteCount      Int?     // Number of voice notes transcribed
-  voiceNoteFilenames  String[] // Original PTT filenames for audit trail
-  voiceNoteDurations  Int[]    // Duration in seconds (parallel to filenames)
+  voiceNoteCount     Int? // Number of voice notes transcribed
+  voiceNoteFilenames String[] // Original PTT filenames for audit trail
+  voiceNoteDurations Int[] // Duration in seconds (parallel to filenames)
 
   // WhatsApp sharing fields
   shareToken       String?   @unique // Public share token
@@ -208,6 +207,7 @@ model Session {
   bankEntries         EmotionalBankEntry[]
   linguisticSnapshots LinguisticSnapshot[]
   questions           SessionQuestion[]
+  shareEvents         ShareEvent[] // Phase 7: Share analytics
 
   @@index([coupleId])
   @@index([relationshipId])
@@ -475,11 +475,17 @@ model PersonalityProfile {
   growthAreasNarrative   String? @db.Text
   communicationNarrative String? @db.Text
 
+  // Sharing fields (Phase 7)
+  shareToken       String?   @unique // Public share token
+  shareTokenExpiry DateTime? // When share link expires
+  shareEnabled     Boolean   @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  snapshots LinguisticSnapshot[]
+  snapshots   LinguisticSnapshot[]
+  shareEvents ShareEvent[] // Phase 7: Share analytics
 
   @@map("personality_profiles")
 }
@@ -611,8 +617,8 @@ model SessionQuestion {
 
   question         String @db.Text // User's question about the session
   answer           String @db.Text // AI-generated answer
-  referencedQuotes Json?  // Array of { text, speaker?, context? }
-  referencedCards  Json?  // Referenced card data from analysis
+  referencedQuotes Json? // Array of { text, speaker?, context? }
+  referencedCards  Json? // Referenced card data from analysis
 
   processingTimeMs Int? // Time to generate answer in ms
   tokensUsed       Int? // Claude tokens used
@@ -711,4 +717,42 @@ model PatternMetricsCache {
   sessionsCount Int      @default(0)
 
   @@map("pattern_metrics_cache")
+}
+
+// ============================================================================
+// SHARING & ANALYTICS (Phase 7)
+// ============================================================================
+
+enum ShareEventType {
+  LINK_CREATED
+  LINK_VIEWED
+  LINK_REVOKED
+  LINK_EXPIRED
+}
+
+enum ShareMethod {
+  WHATSAPP
+  EMAIL
+  COPY_LINK
+  OTHER
+}
+
+model ShareEvent {
+  id        String              @id @default(cuid())
+  sessionId String? // Null if sharing a profile
+  session   Session?            @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  profileId String? // Null if sharing a session
+  profile   PersonalityProfile? @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  eventType ShareEventType
+  method    ShareMethod? // How the link was shared (only for LINK_CREATED)
+
+  // Analytics metadata (JSON)
+  metadata Json? // { userAgent, referer, expiryDays, anonymized, etc. }
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([profileId])
+  @@index([eventType])
+  @@map("share_events")
 }

@@ -4,10 +4,13 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiParam, ApiQuery, 
 import { SessionsService } from './sessions.service';
 import { SessionQAService } from './services/session-qa.service';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
+import { Public } from '@/common/decorators/public.decorator';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
 import { ImportWhatsAppDto } from './dto/import-whatsapp.dto';
 import { AskQuestionDto } from './dto/ask-question.dto';
+import { CreateShareLinkDto } from './dto/create-share-link.dto';
+import { SharedReportDto } from './dto/shared-report.dto';
 
 @ApiTags('sessions')
 @ApiBearerAuth()
@@ -273,5 +276,76 @@ export class SessionsController {
   })
   getSuggestedQuestions() {
     return this.sessionQAService.getSuggestedQuestions();
+  }
+
+  // ============================================================================
+  // SHARING ENDPOINTS (Phase 7)
+  // ============================================================================
+
+  @Post(':id/share')
+  @ApiOperation({
+    summary: 'Create shareable link for session report',
+    description: 'Generate a time-limited public link to share session analysis',
+  })
+  @ApiParam({ name: 'id', description: 'Session ID' })
+  @ApiResponse({
+    status: 201,
+    description: 'Share link created',
+    schema: {
+      type: 'object',
+      properties: {
+        shareToken: { type: 'string', example: 'abc123...' },
+        shareUrl: { type: 'string', example: 'https://app.example.com/share/report/abc123' },
+        expiresAt: { type: 'string', format: 'date-time' },
+        anonymize: { type: 'boolean' },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Session not analyzed yet' })
+  @ApiResponse({ status: 404, description: 'Session not found' })
+  async createShareLink(
+    @Param('id') sessionId: string,
+    @Request() req: any,
+    @Body() dto: CreateShareLinkDto,
+  ) {
+    return this.sessionsService.createShareLink(sessionId, req.user.id, dto);
+  }
+
+  @Public()
+  @Get('share/report/:token')
+  @ApiOperation({
+    summary: 'Get shared report (public)',
+    description: 'View session report via public share link. No authentication required.',
+  })
+  @ApiParam({ name: 'token', description: 'Share token' })
+  @ApiResponse({
+    status: 200,
+    description: 'Shared report retrieved',
+    type: SharedReportDto,
+  })
+  @ApiResponse({ status: 404, description: 'Report not found or link expired' })
+  async getSharedReport(@Param('token') token: string): Promise<SharedReportDto> {
+    return this.sessionsService.getSharedReport(token);
+  }
+
+  @Delete(':id/share')
+  @ApiOperation({
+    summary: 'Revoke share link',
+    description: 'Disable public sharing for a session report',
+  })
+  @ApiParam({ name: 'id', description: 'Session ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Share link revoked',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Share link revoked successfully' },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Session not found' })
+  async revokeShareLink(@Param('id') sessionId: string, @Request() req: any) {
+    return this.sessionsService.revokeShareLink(sessionId, req.user.id);
   }
 }

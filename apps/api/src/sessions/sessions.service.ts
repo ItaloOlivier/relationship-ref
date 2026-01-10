@@ -3,12 +3,16 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import { CouplesService } from '@/couples/couples.service';
 import { RelationshipsService } from '@/relationships/relationships.service';
 import { TranscriptionService } from '@/analysis/transcription.service';
-import { SessionStatus, SessionSourceType } from '@prisma/client';
+import { ShareEventsService } from '@/share-events/share-events.service';
+import { SessionStatus, SessionSourceType, ShareMethod } from '@prisma/client';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
 import { ImportWhatsAppDto } from './dto/import-whatsapp.dto';
+import { CreateShareLinkDto } from './dto/create-share-link.dto';
+import { SharedReportDto } from './dto/shared-report.dto';
 import { WhatsAppParserService, ParsedChat } from './services/whatsapp-parser.service';
 import { VoiceNoteMatchingService } from './services/voice-note-matching.service';
+import { generateSecureToken, calculateTokenExpiry, isTokenExpired } from '@/common/utils/token.util';
 
 @Injectable()
 export class SessionsService {
@@ -20,6 +24,7 @@ export class SessionsService {
     private relationshipsService: RelationshipsService,
     private whatsAppParser: WhatsAppParserService,
     private voiceNoteMatchingService: VoiceNoteMatchingService,
+    private shareEventsService: ShareEventsService,
     @Inject(forwardRef(() => TranscriptionService))
     private transcriptionService: TranscriptionService,
   ) {}
@@ -390,5 +395,131 @@ export class SessionsService {
     });
 
     return { session, parsedChat, voiceNoteStats };
+  }
+
+  // ============================================================================
+  // SHARING METHODS (Phase 7)
+  // ============================================================================
+
+  /**
+   * Create a shareable link for a session report
+   * @param sessionId Session ID
+   * @param userId User creating the share link (must have access to session)
+   * @param dto Share configuration (expiry, anonymization)
+   * @returns Share URL data
+   */
+  async createShareLink(sessionId: string, userId: string, dto: CreateShareLinkDto) {
+    // Verify user has access to session
+    const session = await this.findById(sessionId, userId);
+
+    // Verify session is completed (has analysis)
+    if (!session.analysisResult) {
+      throw new BadRequestException('Cannot share session without completed analysis');
+    }
+
+    // Generate secure token
+    const shareToken = generateSecureToken(32);
+    const shareTokenExpiry = calculateTokenExpiry(dto.expiryDays || 7);
+
+    // Update session with share data
+    await this.prisma.session.update({
+      where: { id: sessionId },
+      data: {
+        shareToken,
+        shareTokenExpiry,
+        shareEnabled: true,
+      },
+    });
+
+    // Track share link creation
+    await this.shareEventsService.trackLinkCreated({
+      sessionId,
+      expiryDays: dto.expiryDays || 7,
+      anonymized: dto.anonymize || false,
+      method: ShareMethod.COPY_LINK, // Default to copy link, can be updated when method is known
+    });
+
+    this.logger.log(`Share link created for session ${sessionId} by user ${userId}`);
+
+    return {
+      shareToken,
+      shareUrl: `${process.env.WEB_APP_URL || 'http://localhost:3001'}/share/report/${shareToken}`,
+      expiresAt: shareTokenExpiry,
+      anonymize: dto.anonymize || false,
+    };
+  }
+
+  /**
+   * Get shared report by public token (no authentication required)
+   * @param token Share token
+   * @returns Sanitized report data
+   */
+  async getSharedReport(token: string): Promise<SharedReportDto> {
+    const session = await this.prisma.session.findFirst({
+      where: {
+        shareToken: token,
+        shareEnabled: true,
+      },
+      include: {
+        analysisResult: true,
+      },
+    });
+
+    if (!session) {
+      throw new NotFoundException('Report not found or sharing has been disabled');
+    }
+
+    // Check expiry
+    if (isTokenExpired(session.shareTokenExpiry)) {
+      throw new NotFoundException('Share link has expired');
+    }
+
+    if (!session.analysisResult) {
+      throw new NotFoundException('Report not available');
+    }
+
+    // Sanitize data - remove sensitive information
+    const result = session.analysisResult;
+
+    return {
+      sessionId: session.id,
+      overallScore: result.overallScore,
+      greenCardCount: result.greenCardCount,
+      yellowCardCount: result.yellowCardCount,
+      redCardCount: result.redCardCount,
+      bankChange: result.bankChange,
+      individualScores: result.individualScores as any[],
+      topicTags: result.topicTags,
+      cards: result.cards as any[],
+      whatWentWell: result.whatWentWell || undefined,
+      tryNextTime: result.tryNextTime || undefined,
+      repairSuggestion: result.repairSuggestion || undefined,
+      createdAt: session.createdAt,
+      sourceType: session.sourceType,
+    };
+  }
+
+  /**
+   * Revoke a share link (disable sharing)
+   * @param sessionId Session ID
+   * @param userId User revoking the link (must have access)
+   */
+  async revokeShareLink(sessionId: string, userId: string) {
+    // Verify user has access to session
+    await this.findById(sessionId, userId);
+
+    await this.prisma.session.update({
+      where: { id: sessionId },
+      data: {
+        shareEnabled: false,
+      },
+    });
+
+    // Track share link revocation
+    await this.shareEventsService.trackLinkRevoked({ sessionId });
+
+    this.logger.log(`Share link revoked for session ${sessionId} by user ${userId}`);
+
+    return { message: 'Share link revoked successfully' };
   }
 }

@@ -103,7 +103,7 @@ See [TestFlight Deployment Guide](docs/testflight-deployment.md) for complete iO
     - [InsightsController](apps/api/src/insights/insights.controller.ts)
     - [InsightsScreen](apps/mobile/lib/features/insights/presentation/screens/insights_screen.dart)
     - [QAChatSection](apps/mobile/lib/features/session/presentation/widgets/qa_chat_section.dart)
-- [ ] **Phase 6: Multi-Relationship UI & Features** (IN PROGRESS - 2026-01-10)
+- [x] **Phase 6: Individual Scorecards + Relationship Directory** (Completed 2026-01-10)
   - [x] Phase 6.1: Database Foundation (2026-01-10)
     - Added `individualScores` JSON field to AnalysisResult model
     - Migration: `20260110_add_individual_scores_field`
@@ -205,10 +205,20 @@ See [TestFlight Deployment Guide](docs/testflight-deployment.md) for complete iO
   - [ ] Relationship list/switcher in home screen (deferred to Phase 7)
   - [ ] Cross-relationship personality comparison (deferred)
   - [ ] Type-specific UI themes (romantic vs business vs friendship) (deferred)
-- [ ] **Phase 7: WhatsApp Report Sharing**
-  - Generate shareable report links
-  - PDF export with branding
-  - Privacy controls per relationship
+- [x] **Phase 7: WhatsApp Report Sharing - Backend API** (Phase 1/4 Completed 2026-01-10)
+  - [x] Phase 1: Backend Share Link Generation - See detailed documentation above
+  - [ ] Phase 2: Next.js Web Viewer App
+  - [ ] Phase 3: Flutter Share UI Integration
+  - [ ] Phase 4: Analytics & Monitoring
+  - **Phase 1 Summary:**
+    - Database: ShareEvent model + PersonalityProfile share fields
+    - Token utility: generateSecureToken(), 16 tests
+    - Auth: @Public() decorator, JwtAuthGuard with Reflector
+    - Service: createShareLink(), getSharedReport(), revokeShareLink()
+    - Controller: 3 REST endpoints (POST/GET/DELETE)
+    - Tracking: ShareEventsService integrated
+    - Tests: 287 passing (271 original + 16 new)
+    - Documentation: Full Swagger + comments
 - [ ] **Phase 8: Type-Specific Coaching**
   - Business relationship coaching (conflict resolution, negotiation)
   - Friendship coaching (boundary setting, support patterns)
