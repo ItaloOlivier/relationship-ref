@@ -147,8 +147,16 @@ See [TestFlight Deployment Guide](docs/testflight-deployment.md) for complete iO
     - Returns: avgPersonalScore, total cards (green/yellow/red), unique horsemen used, total repair attempts
     - Privacy-first: returns 404 if users don't share a relationship (prevents user enumeration)
     - All 271 tests pass (no test changes needed, compilation verified)
-    - Commit: [pending]
-  - [ ] Relationship list/switcher in home screen
+    - Commit: e2b6631
+  - [x] Phase 6.6: Flutter Domain Models (2026-01-10)
+    - Added IndividualScore class with 9 fields (userId, speaker, card counts, personalScore, bankContribution, horsemenUsed, repairAttemptCount)
+    - Updated SessionCard with speaker and userId fields
+    - Updated AnalysisResult to include individualScores list
+    - JSON deserialization handles null/missing fields gracefully
+    - Backward compatible with existing API responses
+    - 63 Flutter tests passing (8 pre-existing failures unrelated)
+    - Commit: 057d7e3
+  - [ ] Relationship list/switcher in home screen (deferred)
   - [ ] Individual scorecards per participant
   - [ ] Relationship directory (view all friends/business/partners)
   - [ ] Cross-relationship personality comparison
