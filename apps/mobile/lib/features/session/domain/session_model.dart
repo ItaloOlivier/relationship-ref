@@ -125,12 +125,16 @@ class SessionCard {
   final String reason;
   final String? quote;
   final String category;
+  final String? speaker;
+  final String? userId;
 
   SessionCard({
     required this.type,
     required this.reason,
     this.quote,
     required this.category,
+    this.speaker,
+    this.userId,
   });
 
   factory SessionCard.fromJson(Map<String, dynamic> json) {
@@ -139,8 +143,54 @@ class SessionCard {
       reason: json['reason'] as String,
       quote: json['quote'] as String?,
       category: json['category'] as String,
+      speaker: json['speaker'] as String?,
+      userId: json['userId'] as String?,
     );
   }
+}
+
+class IndividualScore extends Equatable {
+  final String? userId;
+  final String speaker;
+  final int greenCardCount;
+  final int yellowCardCount;
+  final int redCardCount;
+  final int personalScore;
+  final int bankContribution;
+  final List<String> horsemenUsed;
+  final int repairAttemptCount;
+
+  const IndividualScore({
+    this.userId,
+    required this.speaker,
+    required this.greenCardCount,
+    required this.yellowCardCount,
+    required this.redCardCount,
+    required this.personalScore,
+    required this.bankContribution,
+    required this.horsemenUsed,
+    required this.repairAttemptCount,
+  });
+
+  factory IndividualScore.fromJson(Map<String, dynamic> json) {
+    return IndividualScore(
+      userId: json['userId'] as String?,
+      speaker: json['speaker'] as String,
+      greenCardCount: json['greenCardCount'] as int,
+      yellowCardCount: json['yellowCardCount'] as int,
+      redCardCount: json['redCardCount'] as int,
+      personalScore: json['personalScore'] as int,
+      bankContribution: json['bankContribution'] as int,
+      horsemenUsed: (json['horsemenUsed'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      repairAttemptCount: json['repairAttemptCount'] as int,
+    );
+  }
+
+  @override
+  List<Object?> get props => [userId, speaker, personalScore];
 }
 
 class AnalysisResult extends Equatable {
@@ -158,6 +208,7 @@ class AnalysisResult extends Equatable {
   final String? repairSuggestion;
   final bool safetyFlagTriggered;
   final SafetyResources? safetyResources;
+  final List<IndividualScore> individualScores;
 
   const AnalysisResult({
     required this.id,
@@ -174,6 +225,7 @@ class AnalysisResult extends Equatable {
     this.repairSuggestion,
     required this.safetyFlagTriggered,
     this.safetyResources,
+    this.individualScores = const [],
   });
 
   factory AnalysisResult.fromJson(Map<String, dynamic> json) {
@@ -196,11 +248,15 @@ class AnalysisResult extends Equatable {
       safetyResources: json['safetyResources'] != null
           ? SafetyResources.fromJson(json['safetyResources'] as Map<String, dynamic>)
           : null,
+      individualScores: (json['individualScores'] as List<dynamic>?)
+              ?.map((e) => IndividualScore.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
     );
   }
 
   @override
-  List<Object?> get props => [id, overallScore, bankChange];
+  List<Object?> get props => [id, overallScore, bankChange, individualScores];
 }
 
 class SessionReport {
