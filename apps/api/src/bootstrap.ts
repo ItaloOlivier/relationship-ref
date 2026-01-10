@@ -31,10 +31,10 @@ async function bootstrap() {
         'https://relationship-ref-vercel.app',
         process.env.DASHBOARD_URL || '',
       ].filter(Boolean)
-    : ['http://localhost:3001', 'http://localhost:3000', true];
+    : ['http://localhost:3001', 'http://localhost:3000'];
 
   app.enableCors({
-    origin: allowedOrigins,
+    origin: process.env.NODE_ENV === 'production' ? allowedOrigins : true,
     credentials: true,
   });
 
