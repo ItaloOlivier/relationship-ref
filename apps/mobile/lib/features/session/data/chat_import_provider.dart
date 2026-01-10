@@ -178,7 +178,8 @@ class ChatImportNotifier extends StateNotifier<ChatImportStatus> {
       );
 
       final sessionId = response['session']['id'] as String;
-      final participants = (response['participants'] as List).cast<String>();
+      final participantsList = response['participants'] as List;
+      final participants = participantsList.map((p) => p.toString()).toList();
       final messageCount = response['messageCount'] as int;
 
       state = state.copyWith(
