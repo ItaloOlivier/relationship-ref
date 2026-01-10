@@ -96,7 +96,7 @@ export class SessionsService {
   async findAllForUser(userId: string, page = 1, limit = 20) {
     // Get all relationships for user (includes couples via backward compatibility)
     const relationships = await this.relationshipsService.getRelationshipsForUser(userId, false);
-    const relationshipIds = relationships.map(r => r.id);
+    const relationshipIds = relationships.map((r: { id: string }) => r.id);
 
     // Also try to get legacy couple
     const couple = await this.couplesService.getCoupleForUser(userId);

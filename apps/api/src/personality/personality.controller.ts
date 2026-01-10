@@ -174,7 +174,7 @@ export class PersonalityController {
 
     // Create participant to user mapping if we have 2 participants
     const participantToUserMap = new Map<string, string>();
-    if (session.chatParticipants.length >= 2 && session.couple.partner1Id) {
+    if (session.chatParticipants.length >= 2 && session.couple?.partner1Id) {
       participantToUserMap.set(session.chatParticipants[0], session.couple.partner1Id);
       if (session.couple.partner2Id) {
         participantToUserMap.set(session.chatParticipants[1], session.couple.partner2Id);

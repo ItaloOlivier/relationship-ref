@@ -102,8 +102,10 @@ export class AnalysisService {
         },
       });
 
-      // Update emotional bank ledger
-      await this.updateEmotionalBank(session.coupleId, sessionId, userId, scoringResult);
+      // Update emotional bank ledger (only if coupleId exists)
+      if (session.coupleId) {
+        await this.updateEmotionalBank(session.coupleId, sessionId, userId, scoringResult);
+      }
 
       // Mark session complete
       await this.sessionsService.updateStatus(sessionId, SessionStatus.COMPLETED);
@@ -123,9 +125,11 @@ export class AnalysisService {
     }
 
     // Get emotional bank balance
-    const bankLedger = await this.prisma.emotionalBankLedger.findUnique({
-      where: { coupleId: session.coupleId },
-    });
+    const bankLedger = session.coupleId
+      ? await this.prisma.emotionalBankLedger.findUnique({
+          where: { coupleId: session.coupleId },
+        })
+      : null;
 
     return {
       session: {

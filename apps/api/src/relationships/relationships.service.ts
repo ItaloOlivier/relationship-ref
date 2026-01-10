@@ -4,7 +4,7 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
-import { PrismaService } from '@/prisma/prisma.service';
+import { PrismaService } from '@/common/prisma/prisma.service';
 import { CreateRelationshipDto } from './dto/create-relationship.dto';
 import { JoinRelationshipDto } from './dto/join-relationship.dto';
 import { LeaveRelationshipDto } from './dto/leave-relationship.dto';
@@ -94,7 +94,7 @@ export class RelationshipsService {
 
     // Check if user is already a member
     const existingMember = relationship.members.find(
-      (m) => m.userId === userId && m.leftAt === null,
+      (m: { userId: string; leftAt: Date | null }) => m.userId === userId && m.leftAt === null,
     );
 
     if (existingMember) {
@@ -212,7 +212,7 @@ export class RelationshipsService {
     }
 
     // Verify user is a member
-    const isMember = relationship.members.some((m) => m.userId === userId);
+    const isMember = relationship.members.some((m: { userId: string }) => m.userId === userId);
     if (!isMember) {
       throw new NotFoundException('Relationship not found');
     }
@@ -233,7 +233,7 @@ export class RelationshipsService {
   ) {
     const relationship = await this.getRelationshipById(relationshipId, userId);
 
-    const member = relationship.members.find((m) => m.userId === userId);
+    const member = relationship.members.find((m: { userId: string; id: string }) => m.userId === userId);
     if (!member) {
       throw new NotFoundException('You are not a member of this relationship');
     }
@@ -356,7 +356,7 @@ export class RelationshipsService {
 
     // Find first romantic couple
     const couple = relationships.find(
-      (r) => r.type === 'ROMANTIC_COUPLE',
+      (r: { type: string }) => r.type === 'ROMANTIC_COUPLE',
     );
 
     if (!couple) {

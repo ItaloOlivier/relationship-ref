@@ -16,7 +16,7 @@ export class GamificationService {
   async getDashboard(userId: string) {
     // Get all relationships for user
     const relationships = await this.relationshipsService.getRelationshipsForUser(userId, false);
-    const relationshipIds = relationships.map(r => r.id);
+    const relationshipIds = relationships.map((r: { id: string }) => r.id);
 
     // Also get legacy couple
     const couple = await this.prisma.couple.findFirst({
