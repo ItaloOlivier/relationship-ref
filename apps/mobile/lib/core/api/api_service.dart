@@ -132,6 +132,24 @@ class SessionsApi {
     });
     return response.data;
   }
+
+  /// Create a shareable link for a session report
+  Future<Map<String, dynamic>> createShareLink(
+    String sessionId, {
+    int expiryDays = 7,
+    bool anonymize = false,
+  }) async {
+    final response = await _client.post('/sessions/$sessionId/share', data: {
+      'expiryDays': expiryDays,
+      'anonymize': anonymize,
+    });
+    return response.data;
+  }
+
+  /// Revoke a share link (disable sharing)
+  Future<void> revokeShareLink(String sessionId) async {
+    await _client.delete('/sessions/$sessionId/share');
+  }
 }
 
 // Gamification API
@@ -189,6 +207,23 @@ class PersonalityApi {
   Future<Map<String, dynamic>> analyzeSession(String sessionId) async {
     final response = await _client.post('/personality/analyze/$sessionId');
     return response.data;
+  }
+
+  /// Create a shareable link for a personality profile
+  Future<Map<String, dynamic>> createShareLink({
+    int expiryDays = 7,
+    bool anonymize = false,
+  }) async {
+    final response = await _client.post('/personality/share', data: {
+      'expiryDays': expiryDays,
+      'anonymize': anonymize,
+    });
+    return response.data;
+  }
+
+  /// Revoke a profile share link (disable sharing)
+  Future<void> revokeShareLink() async {
+    await _client.delete('/personality/share');
   }
 }
 

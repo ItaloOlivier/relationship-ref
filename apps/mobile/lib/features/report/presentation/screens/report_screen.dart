@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/skeleton_loading.dart';
 import '../../../../core/ui/celebration_animations.dart';
+import '../../../../core/widgets/share_dialog.dart';
 import '../../../session/domain/session_model.dart';
 import '../../../session/data/session_repository.dart';
 import '../../../session/presentation/widgets/qa_chat_section.dart';
@@ -53,9 +54,9 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
           IconButton(
             icon: const Icon(Icons.share),
             onPressed: () {
-              // TODO: Share report
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Share feature coming soon!')),
+              showDialog(
+                context: context,
+                builder: (context) => ShareDialog.session(sessionId: widget.sessionId),
               );
             },
           ),

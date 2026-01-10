@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/share_dialog.dart';
 import '../../data/personality_repository.dart';
 import '../../domain/personality_profile_model.dart';
 import '../widgets/trait_gauge_card.dart';
@@ -21,6 +22,16 @@ class PersonalityProfileScreen extends ConsumerWidget {
         appBar: AppBar(
           title: const Text('My Personality'),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.share),
+              tooltip: 'Share Profile',
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => ShareDialog.profile(),
+                );
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.compare_arrows),
               tooltip: 'Compare with Partner',
