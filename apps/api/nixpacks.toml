@@ -1,15 +1,11 @@
 [phases.setup]
-nixPkgs = ["nodejs_20", "openssl"]
+nixPkgs = ['nodejs_20', 'openssl']
 
 [phases.install]
-cmds = ["npm ci --omit=dev --ignore-scripts"]
+cmds = ['npm ci']
 
 [phases.build]
-cmds = [
-  "npm install --save-dev prisma @nestjs/cli",
-  "npx prisma generate",
-  "npm run build"
-]
+cmds = ['npm run build']
 
 [start]
-cmd = "npx prisma migrate deploy && node dist/main"
+cmd = 'npm run start:prod'
