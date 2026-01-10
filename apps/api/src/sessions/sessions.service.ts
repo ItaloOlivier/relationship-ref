@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service';
 import { CouplesService } from '@/couples/couples.service';
 import { RelationshipsService } from '@/relationships/relationships.service';
@@ -20,6 +20,7 @@ export class SessionsService {
     private relationshipsService: RelationshipsService,
     private whatsAppParser: WhatsAppParserService,
     private voiceNoteMatchingService: VoiceNoteMatchingService,
+    @Inject(forwardRef(() => TranscriptionService))
     private transcriptionService: TranscriptionService,
   ) {}
 
