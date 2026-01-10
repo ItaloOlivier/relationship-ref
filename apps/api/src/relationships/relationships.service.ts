@@ -348,6 +348,199 @@ export class RelationshipsService {
   }
 
   /**
+   * Get all members of a relationship (Phase 4)
+   * - Returns active members with user details
+   * - Verifies requesting user is a member
+   */
+  async getRelationshipMembers(relationshipId: string, userId: string) {
+    const relationship = await this.getRelationshipById(relationshipId, userId);
+
+    return relationship.members.map((member: any) => ({
+      id: member.id,
+      userId: member.userId,
+      role: member.role,
+      joinedAt: member.joinedAt,
+      user: member.user,
+    }));
+  }
+
+  /**
+   * Get all sessions for a relationship (Phase 4)
+   * - Returns sessions with analysis results
+   * - Sorted by most recent first
+   */
+  async getRelationshipSessions(relationshipId: string, userId: string) {
+    // Verify user is a member
+    await this.getRelationshipById(relationshipId, userId);
+
+    const sessions = await this.prisma.session.findMany({
+      where: {
+        relationshipId,
+      },
+      include: {
+        analysisResult: {
+          select: {
+            overallScore: true,
+            greenCardCount: true,
+            yellowCardCount: true,
+            redCardCount: true,
+            bankChange: true,
+            topicTags: true,
+            individualScores: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return sessions;
+  }
+
+  /**
+   * Get relationship insights summary (Phase 4)
+   * - Aggregates patterns from pattern metrics cache
+   * - Returns top patterns and trends
+   */
+  async getRelationshipInsights(relationshipId: string, userId: string) {
+    // Verify user is a member
+    await this.getRelationshipById(relationshipId, userId);
+
+    // Get pattern metrics cache if exists
+    const metricsCache = await this.prisma.patternMetricsCache.findUnique({
+      where: { relationshipId },
+    });
+
+    if (!metricsCache) {
+      return {
+        hasData: false,
+        message: 'Not enough sessions to generate insights',
+      };
+    }
+
+    const metrics = metricsCache.metrics as any;
+
+    return {
+      hasData: true,
+      topicFrequency: metrics.topicFrequency || {},
+      hourlyScoreDistribution: metrics.hourlyScoreDistribution || {},
+      monthlyScoreAverages: metrics.monthlyScoreAverages || {},
+      horsemenTrend: metrics.horsemenTrend || {},
+      repairAttemptTrend: metrics.repairAttemptTrend || {},
+      lastUpdated: metricsCache.lastUpdated,
+    };
+  }
+
+  /**
+   * Get relationship health metrics (Phase 4)
+   * - Calculates health score based on recent sessions
+   * - Returns emotional bank balance
+   * - Includes session count and trends
+   */
+  async getRelationshipHealth(relationshipId: string, userId: string) {
+    const relationship = await this.getRelationshipById(relationshipId, userId);
+
+    // Get recent sessions (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const recentSessions = await this.prisma.session.findMany({
+      where: {
+        relationshipId,
+        createdAt: {
+          gte: thirtyDaysAgo,
+        },
+        status: 'COMPLETED',
+      },
+      include: {
+        analysisResult: {
+          select: {
+            overallScore: true,
+            bankChange: true,
+            greenCardCount: true,
+            yellowCardCount: true,
+            redCardCount: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    // Calculate health score (average of recent session scores)
+    const avgScore =
+      recentSessions.length > 0
+        ? recentSessions.reduce(
+            (sum, s) => sum + (s.analysisResult?.overallScore || 0),
+            0,
+          ) / recentSessions.length
+        : null;
+
+    // Calculate trend (comparing first half vs second half of recent sessions)
+    let trend: 'improving' | 'declining' | 'stable' | null = null;
+    if (recentSessions.length >= 4) {
+      const midpoint = Math.floor(recentSessions.length / 2);
+      const firstHalfAvg =
+        recentSessions
+          .slice(0, midpoint)
+          .reduce((sum, s) => sum + (s.analysisResult?.overallScore || 0), 0) /
+        midpoint;
+      const secondHalfAvg =
+        recentSessions
+          .slice(midpoint)
+          .reduce((sum, s) => sum + (s.analysisResult?.overallScore || 0), 0) /
+        (recentSessions.length - midpoint);
+
+      if (firstHalfAvg - secondHalfAvg > 5) trend = 'improving';
+      else if (secondHalfAvg - firstHalfAvg > 5) trend = 'declining';
+      else trend = 'stable';
+    }
+
+    // Get emotional bank balance
+    const bankBalance =
+      relationship.emotionalBankLedger?.balance ?? 0;
+
+    // Calculate card ratios
+    const totalCards = recentSessions.reduce(
+      (sum, s) =>
+        sum +
+        (s.analysisResult?.greenCardCount || 0) +
+        (s.analysisResult?.yellowCardCount || 0) +
+        (s.analysisResult?.redCardCount || 0),
+      0,
+    );
+
+    const greenRatio =
+      totalCards > 0
+        ? recentSessions.reduce(
+            (sum, s) => sum + (s.analysisResult?.greenCardCount || 0),
+            0,
+          ) / totalCards
+        : 0;
+
+    return {
+      healthScore: avgScore ? Math.round(avgScore) : null,
+      trend,
+      emotionalBankBalance: bankBalance,
+      recentSessionCount: recentSessions.length,
+      greenCardRatio: Math.round(greenRatio * 100),
+      totalSessionCount: relationship._count?.sessions || 0,
+      lastSessionDate:
+        recentSessions.length > 0 ? recentSessions[0].createdAt : null,
+    };
+  }
+
+  /**
    * Backward compatibility: Get couple-style data
    * Returns the first ROMANTIC_COUPLE relationship for a user
    */

@@ -118,4 +118,52 @@ export class RelationshipsController {
       dto,
     );
   }
+
+  @Get(':id/members')
+  @ApiOperation({
+    summary: 'Get all members of a relationship',
+    description: 'Returns active members with user details. User must be a member to access.',
+  })
+  @ApiParam({ name: 'id', description: 'Relationship ID' })
+  @ApiResponse({ status: 200, description: 'Members retrieved' })
+  @ApiResponse({ status: 404, description: 'Relationship not found' })
+  async getMembers(@Request() req: any, @Param('id') id: string) {
+    return this.relationshipsService.getRelationshipMembers(id, req.user.id);
+  }
+
+  @Get(':id/sessions')
+  @ApiOperation({
+    summary: 'Get all sessions for a relationship',
+    description: 'Returns sessions with analysis results, sorted by most recent first.',
+  })
+  @ApiParam({ name: 'id', description: 'Relationship ID' })
+  @ApiResponse({ status: 200, description: 'Sessions retrieved' })
+  @ApiResponse({ status: 404, description: 'Relationship not found' })
+  async getSessions(@Request() req: any, @Param('id') id: string) {
+    return this.relationshipsService.getRelationshipSessions(id, req.user.id);
+  }
+
+  @Get(':id/insights')
+  @ApiOperation({
+    summary: 'Get relationship insights summary',
+    description: 'Aggregates patterns from pattern metrics cache. Returns topic frequency, score trends, and horsemen patterns.',
+  })
+  @ApiParam({ name: 'id', description: 'Relationship ID' })
+  @ApiResponse({ status: 200, description: 'Insights retrieved' })
+  @ApiResponse({ status: 404, description: 'Relationship not found' })
+  async getInsights(@Request() req: any, @Param('id') id: string) {
+    return this.relationshipsService.getRelationshipInsights(id, req.user.id);
+  }
+
+  @Get(':id/health')
+  @ApiOperation({
+    summary: 'Get relationship health metrics',
+    description: 'Calculates health score, trend, emotional bank balance, and card ratios based on recent sessions.',
+  })
+  @ApiParam({ name: 'id', description: 'Relationship ID' })
+  @ApiResponse({ status: 200, description: 'Health metrics retrieved' })
+  @ApiResponse({ status: 404, description: 'Relationship not found' })
+  async getHealth(@Request() req: any, @Param('id') id: string) {
+    return this.relationshipsService.getRelationshipHealth(id, req.user.id);
+  }
 }

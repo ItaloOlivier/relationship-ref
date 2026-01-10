@@ -125,6 +125,17 @@ See [TestFlight Deployment Guide](docs/testflight-deployment.md) for complete iO
     - Updated AnalysisService to store individualScores in database
     - Added 12 comprehensive tests covering: two-speaker scenarios, card counting, bank contribution, personal scores, horsemen tracking, repair attempts, edge cases (solo/unattributed/duplicates)
     - All 271 tests pass (12 new, 259 existing)
+    - Commit: c916c09
+  - [x] Phase 6.4: Relationship Directory API (2026-01-10)
+    - Added 4 new endpoints to RelationshipsController
+    - GET /relationships/:id/members - Get all participants with user details
+    - GET /relationships/:id/sessions - Get session history with analysis results
+    - GET /relationships/:id/insights - Get aggregated patterns from metrics cache
+    - GET /relationships/:id/health - Get health score, trend, emotional bank balance
+    - Implemented 4 methods in RelationshipsService: getRelationshipMembers(), getRelationshipSessions(), getRelationshipInsights(), getRelationshipHealth()
+    - Health calculation: averages last 30 days sessions, calculates trend (improving/declining/stable), green card ratio
+    - All endpoints verify user membership before returning data (ACL)
+    - All 271 tests pass (no test changes needed, compilation verified)
     - Commit: [pending]
   - [ ] Relationship list/switcher in home screen
   - [ ] Individual scorecards per participant
