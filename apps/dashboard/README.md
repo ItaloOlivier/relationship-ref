@@ -160,35 +160,55 @@ npm run lint        # Run ESLint
 
 ## Deployment
 
-### Vercel (Recommended)
+### Railway (Recommended - Same Platform as API)
 
 1. **Push to GitHub**:
    ```bash
+   git add apps/dashboard
+   git commit -m "Add dashboard deployment config"
    git push origin main
    ```
 
-2. **Deploy to Vercel**:
+2. **Create New Service in Railway**:
+   - Go to your Railway project
+   - Click "New Service" → "GitHub Repo"
+   - Select your repository
+   - Set **Root Directory**: `apps/dashboard`
+   - Railway will auto-detect Next.js and use nixpacks.toml
+
+3. **Set Environment Variables** in Railway:
+   - `NEXT_PUBLIC_API_URL` = `https://relationship-ref-production.up.railway.app`
+
+4. **Generate Domain**:
+   - Railway will auto-generate a domain like: `dashboard-production.up.railway.app`
+   - Or add custom domain in Settings → Domains
+
+5. **Update API CORS**:
+   - Add your dashboard URL to `apps/api/src/bootstrap.ts`:
+   ```typescript
+   const allowedOrigins = [
+     'https://dashboard-production.up.railway.app', // Add this
+     // ... other origins
+   ];
+   ```
+
+6. **Deploy**:
+   - Railway auto-deploys on git push
+   - Monitor build logs in Railway dashboard
+
+### Alternative: Vercel
+
+If you prefer Vercel:
+
+1. **Deploy**:
    ```bash
    npx vercel --prod
    ```
 
-3. **Set Environment Variables** in Vercel dashboard:
+2. **Set Environment Variables**:
    - `NEXT_PUBLIC_API_URL` = `https://relationship-ref-production.up.railway.app`
 
-4. **Access Dashboard**:
-   - Production: `https://your-dashboard-domain.vercel.app`
-
-### Update API CORS
-
-Ensure the backend API allows your dashboard domain:
-
-```typescript
-// apps/api/src/bootstrap.ts
-const allowedOrigins = [
-  'https://your-dashboard-domain.vercel.app',
-  // ... other origins
-];
-```
+3. **Update API CORS** with your Vercel domain
 
 ## All Features Complete! 🎉
 
