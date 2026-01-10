@@ -29,6 +29,7 @@ async function bootstrap() {
     ? [
         'https://web-mocha-kappa-28.vercel.app',
         'https://relationship-ref-vercel.app',
+        'https://website-production-53e1.up.railway.app',  // Dashboard on Railway
         process.env.DASHBOARD_URL || '',
       ].filter(Boolean)
     : ['http://localhost:3001', 'http://localhost:3000'];
