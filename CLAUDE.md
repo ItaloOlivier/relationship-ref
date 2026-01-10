@@ -187,11 +187,24 @@ See [TestFlight Deployment Guide](docs/testflight-deployment.md) for complete iO
     - Invite Code Card: monospace code display with copy button (for active relationships only)
     - Options Menu: Pause and Leave actions (TODO)
     - Commit: 8b925cb
-  - [ ] Phase 6.11: Flutter Participant Profile Screen (IN PROGRESS)
-  - [ ] Phase 6.12: Navigation and Routing Integration
-  - [ ] Relationship list/switcher in home screen (deferred)
-  - [ ] Cross-relationship personality comparison
-  - [ ] Type-specific UI themes (romantic vs business vs friendship)
+  - [x] Phase 6.11: Flutter Participant Profile Screen (2026-01-10)
+    - Created ParticipantProfileScreen showing individual user metrics in relationship context
+    - Domain models: ParticipantProfile, UserInfo, RelationshipContext, ParticipantMetrics
+    - Added getUserProfileInRelationship() method to UsersApi
+    - Components: _UserHeader, _RelationshipContextBadge, _PersonalScoreCard, _CardDistributionCard, _CommunicationPatternsCard, _SessionSummaryCard
+    - Displays: avg personal score, card distribution, green card ratio, repair attempts, Four Horsemen, sessions count
+    - Privacy-first with backend ACL verification
+    - Commit: a63c1d2
+  - [x] Phase 6.12: Navigation and Routing Integration (2026-01-10)
+    - Added relationship routes to app router (GoRouter)
+    - Routes: /settings/relationships (list), /relationships/:id (detail), /relationships/:id/participants/:userId (profile), /sessions/:id/report (standalone)
+    - Navigation structure: Settings → Relationships → Detail → Participants
+    - All routes handle path parameters correctly
+    - Commit: 9318572
+  - **Phase 6 Complete!** All 271 backend tests passing, Flutter analysis clean on all new screens
+  - [ ] Relationship list/switcher in home screen (deferred to Phase 7)
+  - [ ] Cross-relationship personality comparison (deferred)
+  - [ ] Type-specific UI themes (romantic vs business vs friendship) (deferred)
 - [ ] **Phase 7: WhatsApp Report Sharing**
   - Generate shareable report links
   - PDF export with branding
