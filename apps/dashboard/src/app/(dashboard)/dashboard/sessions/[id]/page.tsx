@@ -91,7 +91,12 @@ export default function SessionDetailPage() {
               {new Date(session.createdAt).toLocaleDateString()}
             </p>
           </div>
-          <Button variant="outline">Share Report</Button>
+          <div className="flex gap-2">
+            <Link href={`/dashboard/sessions/${sessionId}/qa`}>
+              <Button variant="outline">💬 Ask Questions</Button>
+            </Link>
+            <Button variant="outline">Share Report</Button>
+          </div>
         </div>
       </div>
 

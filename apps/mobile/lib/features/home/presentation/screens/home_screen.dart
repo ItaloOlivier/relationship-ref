@@ -11,6 +11,7 @@ import '../../../session/data/session_repository.dart';
 import '../../../session/domain/session_model.dart';
 import '../../../insights/data/insights_repository.dart';
 import '../../../insights/presentation/widgets/insights_summary_card.dart';
+import '../../../relationship/presentation/widgets/relationship_switcher.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -50,6 +51,10 @@ class HomeScreen extends ConsumerWidget {
                 'Welcome back${user?.name != null ? ', ${user!.name}' : ''}!',
                 style: Theme.of(context).textTheme.headlineLarge,
               ),
+              const SizedBox(height: 16),
+
+              // Relationship Switcher
+              const RelationshipSwitcher(),
               const SizedBox(height: 24),
 
               // Emotional Bank Card

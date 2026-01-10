@@ -111,8 +111,11 @@ export interface Relationship {
   name: string;
   type: RelationshipType;
   status: RelationshipStatus;
+  inviteCode?: string;
+  sessionCount?: number;
+  healthScore?: number;
   createdAt: string;
-  members: RelationshipMember[];
+  members?: RelationshipMember[];
 }
 
 export interface RelationshipMember {
@@ -128,16 +131,24 @@ export interface RelationshipMember {
 export interface PersonalityProfile {
   id: string;
   userId: string;
-  openness: number;
-  conscientiousness: number;
-  extraversion: number;
-  agreeableness: number;
-  neuroticism: number;
-  attachmentStyle: string;
-  communicationStyle: string;
-  emotionalAwareness: number;
-  emotionalRegulation: number;
-  empathyScore: number;
+  bigFive?: {
+    openness: number;
+    conscientiousness: number;
+    extraversion: number;
+    agreeableness: number;
+    neuroticism: number;
+  };
+  attachmentStyle?: string;
+  communicationStyle?: string;
+  emotionalIntelligence?: {
+    awareness: number;
+    empathy: number;
+    regulation: number;
+    overall: number;
+  };
+  narrative?: string;
+  confidence: number;
+  sessionCount: number;
   updatedAt: string;
 }
 
@@ -150,8 +161,11 @@ export interface Pattern {
   title: string;
   description: string;
   impact: string;
-  suggestion: string;
+  severity: 'CRITICAL' | 'WARNING' | 'INFO' | 'POSITIVE';
+  suggestedAction?: string;
   confidence: number;
+  frequency?: number;
   detectedAt: string;
   acknowledged: boolean;
+  dismissed?: boolean;
 }
