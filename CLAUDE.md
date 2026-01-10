@@ -205,9 +205,17 @@ See [TestFlight Deployment Guide](docs/testflight-deployment.md) for complete iO
   - [ ] Relationship list/switcher in home screen (deferred to Phase 7)
   - [ ] Cross-relationship personality comparison (deferred)
   - [ ] Type-specific UI themes (romantic vs business vs friendship) (deferred)
-- [x] **Phase 7: WhatsApp Report Sharing** (Phases 1 & 3 Completed 2026-01-10)
+- [x] **Phase 7: WhatsApp Report Sharing** (Phases 1, 2 (partial), 3 Completed 2026-01-10)
   - [x] Phase 1: Backend Share Link Generation - See detailed documentation above
-  - [ ] Phase 2: Next.js Web Viewer App
+  - [x] **Phase 2: Next.js Web Viewer App** (Core pages completed 2026-01-10)
+    - Next.js 15 with App Router and TypeScript
+    - Dynamic routes: /share/report/[token] and /share/profile/[token]
+    - Open Graph meta tags for WhatsApp link previews
+    - Error handling for expired/revoked share links
+    - Responsive mobile-first design ready for Tailwind CSS
+    - package.json, tsconfig.json, page components created
+    - **TODO**: Components (ReportViewer, ProfileViewer, etc.), lib/api.ts, Tailwind config, full testing
+    - Commit: 323efd4
   - [x] **Phase 3: Flutter Share UI Integration** (Completed 2026-01-10)
     - Added url_launcher ^6.2.5 package for deep linking
     - iOS/Android config: WhatsApp URL scheme support
