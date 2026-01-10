@@ -45,16 +45,18 @@ class Session extends Equatable {
 
   factory Session.fromJson(Map<String, dynamic> json) {
     return Session(
-      id: json['id'] as String,
+      id: json['id'] as String? ?? '',
       coupleId: json['coupleId'] as String?,
       relationshipId: json['relationshipId'] as String?,
-      initiatorId: json['initiatorId'] as String,
-      status: SessionStatus.fromString(json['status'] as String),
+      initiatorId: json['initiatorId'] as String? ?? '',
+      status: SessionStatus.fromString((json['status'] as String?) ?? 'RECORDING'),
       durationSecs: json['durationSecs'] as int?,
       audioUrl: json['audioUrl'] as String?,
       retainAudio: json['retainAudio'] as bool? ?? false,
       transcript: json['transcript'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'] as String)
+          : DateTime.now(),
       analysisResult: json['analysisResult'] != null
           ? AnalysisResult.fromJson(json['analysisResult'] as Map<String, dynamic>)
           : null,
@@ -139,10 +141,10 @@ class SessionCard {
 
   factory SessionCard.fromJson(Map<String, dynamic> json) {
     return SessionCard(
-      type: CardType.fromString(json['type'] as String),
-      reason: json['reason'] as String,
+      type: CardType.fromString((json['type'] as String?) ?? 'YELLOW'),
+      reason: json['reason'] as String? ?? '',
       quote: json['quote'] as String?,
-      category: json['category'] as String,
+      category: json['category'] as String? ?? '',
       speaker: json['speaker'] as String?,
       userId: json['userId'] as String?,
     );
@@ -175,17 +177,17 @@ class IndividualScore extends Equatable {
   factory IndividualScore.fromJson(Map<String, dynamic> json) {
     return IndividualScore(
       userId: json['userId'] as String?,
-      speaker: json['speaker'] as String,
-      greenCardCount: json['greenCardCount'] as int,
-      yellowCardCount: json['yellowCardCount'] as int,
-      redCardCount: json['redCardCount'] as int,
-      personalScore: json['personalScore'] as int,
-      bankContribution: json['bankContribution'] as int,
+      speaker: json['speaker'] as String? ?? '',
+      greenCardCount: json['greenCardCount'] as int? ?? 0,
+      yellowCardCount: json['yellowCardCount'] as int? ?? 0,
+      redCardCount: json['redCardCount'] as int? ?? 0,
+      personalScore: json['personalScore'] as int? ?? 0,
+      bankContribution: json['bankContribution'] as int? ?? 0,
       horsemenUsed: (json['horsemenUsed'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
-      repairAttemptCount: json['repairAttemptCount'] as int,
+      repairAttemptCount: json['repairAttemptCount'] as int? ?? 0,
     );
   }
 
@@ -230,16 +232,17 @@ class AnalysisResult extends Equatable {
 
   factory AnalysisResult.fromJson(Map<String, dynamic> json) {
     return AnalysisResult(
-      id: json['id'] as String,
-      sessionId: json['sessionId'] as String,
-      overallScore: json['overallScore'] as int,
-      greenCardCount: json['greenCardCount'] as int,
-      yellowCardCount: json['yellowCardCount'] as int,
-      redCardCount: json['redCardCount'] as int,
-      bankChange: json['bankChange'] as int,
-      cards: (json['cards'] as List<dynamic>)
-          .map((e) => SessionCard.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      id: json['id'] as String? ?? '',
+      sessionId: json['sessionId'] as String? ?? '',
+      overallScore: json['overallScore'] as int? ?? 0,
+      greenCardCount: json['greenCardCount'] as int? ?? 0,
+      yellowCardCount: json['yellowCardCount'] as int? ?? 0,
+      redCardCount: json['redCardCount'] as int? ?? 0,
+      bankChange: json['bankChange'] as int? ?? 0,
+      cards: (json['cards'] as List<dynamic>?)
+              ?.map((e) => SessionCard.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
       topicTags: (json['topicTags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
       whatWentWell: json['whatWentWell'] as String?,
       tryNextTime: json['tryNextTime'] as String?,
